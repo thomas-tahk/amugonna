@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userIngredients        UserIngredient[]
+  userDietaryRestrictions UserDietaryRestriction[]
+  createdRecipes         Recipe[]
+  favoriteRecipes        FavoriteRecipe[]
+
+  @@map("users")
+}
+
+model Ingredient {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
+  category       String?
+  commonUnits    String[] @map("common_units")
+  nutritionalInfo Json?   @map("nutritional_info")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  userIngredients   UserIngredient[]
+  recipeIngredients RecipeIngredient[]
+
+  @@map("ingredients")
+}
+
+model UserIngredient {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  ingredientId   Int       @map("ingredient_id")
+  quantity       Decimal?  @db.Decimal(10, 2)
+  unit           String?
+  expirationDate DateTime? @map("expiration_date") @db.Date
+  addedAt        DateTime  @default(now()) @map("added_at")
+
+  user       User       @relation(fields: [userId], references: [id])
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([userId, ingredientId])
+  @@map("user_ingredients")
+}
+
+model Recipe {
+  id          Int      @id @default(autoincrement())
+  externalId  String?  @map("external_id")
+  title       String
+  description String?
+  instructions String
+  prepTime    Int?     @map("prep_time")
+  cookTime    Int?     @map("cook_time")
+  servings    Int?
+  imageUrl    String?  @map("image_url")
+  sourceUrl   String?  @map("source_url")
+  createdBy   Int?     @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator           User?              @relation(fields: [createdBy], references: [id])
+  recipeIngredients RecipeIngredient[]
+  recipeDietaryTags RecipeDietaryTag[]
+  favoriteRecipes   FavoriteRecipe[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id               Int      @id @default(autoincrement())
+  recipeId         Int      @map("recipe_id")
+  ingredientId     Int      @map("ingredient_id")
+  quantity         Decimal? @db.Decimal(10, 2)
+  unit             String?
+  optional         Boolean  @default(false)
+  substitutions    String[]
+  preparationNote  String?  @map("preparation_note")
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id])
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@map("recipe_ingredients")
+}
+
+model DietaryRestriction {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+  category    String // 'diet', 'allergy', 'intolerance'
+
+  userDietaryRestrictions UserDietaryRestriction[]
+  recipeDietaryTags       RecipeDietaryTag[]
+
+  @@map("dietary_restrictions")
+}
+
+model UserDietaryRestriction {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  restrictionId Int      @map("restriction_id")
+  severity      String? // 'strict', 'moderate', 'mild'
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user        User              @relation(fields: [userId], references: [id])
+  restriction DietaryRestriction @relation(fields: [restrictionId], references: [id])
+
+  @@unique([userId, restrictionId])
+  @@map("user_dietary_restrictions")
+}
+
+model RecipeDietaryTag {
+  id            Int       @id @default(autoincrement())
+  recipeId      Int       @map("recipe_id")
+  restrictionId Int       @map("restriction_id")
+  isCompatible  Boolean   @map("is_compatible")
+  verifiedAt    DateTime? @map("verified_at")
+
+  recipe      Recipe            @relation(fields: [recipeId], references: [id])
+  restriction DietaryRestriction @relation(fields: [restrictionId], references: [id])
+
+  @@unique([recipeId, restrictionId])
+  @@map("recipe_dietary_tags")
+}
+
+model FavoriteRecipe {
+  id       Int      @id @default(autoincrement())
+  userId   Int      @map("user_id")
+  recipeId Int      @map("recipe_id")
+  addedAt  DateTime @default(now()) @map("added_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  recipe Recipe @relation(fields: [recipeId], references: [id])
+
+  @@unique([userId, recipeId])
+  @@map("favorite_recipes")
+}

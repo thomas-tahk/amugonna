@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { prisma } from './lib/database.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -31,7 +32,9 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// API routes will be added here
+// API routes
+app.use('/api/auth', authRoutes);
+
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working' });
 });

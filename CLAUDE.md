@@ -63,5 +63,37 @@
 - **Testing Focus**: Backend API testing before frontend integration
 - **Incremental Development**: Small, testable pieces rather than comprehensive generation
 
+## Next Session Pickup Instructions
+
+### Immediate Next Steps (Session Resume):
+1. **Test Backend APIs First**
+   - Run `npm run seed` in `/server` directory to populate database
+   - Test ingredient search: `curl "http://localhost:3001/api/ingredients?search=chicken"`
+   - Test authentication endpoints (registration/login) 
+   - Verify all backend functionality before frontend work
+
+2. **Frontend Testing Strategy**
+   - Start development server: `npm run dev` in `/client` directory
+   - Test authentication flow in browser
+   - Verify ingredient search and pantry management
+   - Debug any integration issues
+
+3. **Guided Development Approach**
+   - Claude provides step-by-step guidance and code structure
+   - User implements code to reduce token consumption
+   - Focus on incremental testing and validation
+   - Small, manageable pieces rather than comprehensive generation
+
+### Current Working Directory
+- **Server**: `/Users/tnt/Projects/amugonna/server` (backend development)
+- **Client**: `/Users/tnt/Projects/amugonna/client` (frontend development)
+- **Root**: `/Users/tnt/Projects/amugonna` (documentation and git operations)
+
+### Development Status
+- **Backend**: 100% complete and tested
+- **Frontend**: Scaffold ready, needs integration testing and refinement
+- **Database**: Schema ready, needs seeding with `npm run seed`
+- **Authentication**: API complete, frontend integration pending testing
+
 ## Next Steps
-See `/docs/ROADMAP.md` for development priorities and planning.
+See `/docs/ROADMAP.md` for detailed development priorities and planning.

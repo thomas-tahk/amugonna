@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Ingredient } from '../types';
+import type { Ingredient } from '../types';
 import { ingredientsApi } from '../services/api';
 import './IngredientSearch.css';
 
@@ -21,7 +21,7 @@ const IngredientSearch: React.FC<IngredientSearchProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // Debounce search term
-  const debouncedSearchTerm = useMemo(() => {
+  useMemo(() => {
     const timer = setTimeout(() => searchTerm, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);

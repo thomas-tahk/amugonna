@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { prisma } from './lib/database.js';
 import authRoutes from './routes/auth.js';
 import ingredientRoutes from './routes/ingredients.js';
+import recipeRoutes from './routes/recipes.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.get('/health', async (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ingredients', ingredientRoutes);
+app.use('/api/recipes', recipeRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working' });

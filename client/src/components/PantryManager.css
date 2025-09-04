@@ -262,6 +262,13 @@
   background: #dc2626;
 }
 
+/* Recipe Generator Section */
+.recipe-generator-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #ecf0f1;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .pantry-manager {
@@ -279,5 +286,10 @@
   
   .form-actions {
     flex-direction: column;
+  }
+  
+  .recipe-generator-section {
+    margin-top: 30px;
+    padding-top: 20px;
   }
 }

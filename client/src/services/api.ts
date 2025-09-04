@@ -9,6 +9,9 @@ import type {
   CategoriesResponse,
   AddIngredientData,
   UpdateIngredientData,
+  Recipe,
+  RecipeGenerationRequest,
+  RecipesResponse,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
@@ -149,6 +152,70 @@ export const ingredientsApi = {
     token?: string
   ): Promise<ApiResponse<void>> => {
     return apiRequest(`/ingredients/user/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+  },
+};
+
+// Recipes API functions
+export const recipesApi = {
+  generate: async (
+    request: RecipeGenerationRequest,
+    token?: string
+  ): Promise<ApiResponse<{ recipe: Recipe }>> => {
+    return apiRequest('/recipes/generate', {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(request),
+    });
+  },
+
+  getRecipes: async (
+    params: {
+      page?: number;
+      limit?: number;
+      aiGenerated?: boolean;
+    } = {},
+    token?: string
+  ): Promise<ApiResponse<RecipesResponse>> => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.set('page', params.page.toString());
+    if (params.limit) queryParams.set('limit', params.limit.toString());
+    if (params.aiGenerated !== undefined) queryParams.set('aiGenerated', params.aiGenerated.toString());
+
+    const queryString = queryParams.toString();
+    return apiRequest(`/recipes${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+  },
+
+  getRecipe: async (
+    id: number,
+    token?: string
+  ): Promise<ApiResponse<{ recipe: Recipe & { isFavorite: boolean } }>> => {
+    return apiRequest(`/recipes/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+  },
+
+  toggleFavorite: async (
+    id: number,
+    token?: string
+  ): Promise<ApiResponse<{ isFavorite: boolean }>> => {
+    return apiRequest(`/recipes/${id}/favorite`, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+    });
+  },
+
+  deleteRecipe: async (
+    id: number,
+    token?: string
+  ): Promise<ApiResponse<void>> => {
+    return apiRequest(`/recipes/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(token),
     });

@@ -82,3 +82,63 @@ export interface UserIngredientsResponse {
 export interface CategoriesResponse {
   categories: string[];
 }
+
+// Recipe types
+export interface RecipeIngredient {
+  id: number;
+  ingredient: Ingredient;
+  quantity?: number;
+  unit?: string;
+  optional: boolean;
+  substitutions: string[];
+  preparationNote?: string;
+}
+
+export interface Recipe {
+  id: number;
+  title: string;
+  description?: string;
+  instructions: string;
+  prepTime?: number;
+  cookTime?: number;
+  servings?: number;
+  imageUrl?: string;
+  createdBy?: number;
+  createdAt: string;
+  isAiGenerated: boolean;
+  aiPrompt?: string;
+  nutritionalInfo?: {
+    calories: number;
+    protein: string;
+    carbs: string;
+    fat: string;
+    fiber?: string;
+  };
+  difficulty?: 'easy' | 'medium' | 'hard';
+  cuisine?: string;
+  tags: string[];
+  creator?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+  recipeIngredients: RecipeIngredient[];
+}
+
+export interface RecipeGenerationRequest {
+  ingredientIds: number[];
+  dietaryRestrictions?: string[];
+  cuisine?: string;
+  servings?: number;
+  maxPrepTime?: number;
+}
+
+export interface RecipesResponse {
+  recipes: Recipe[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}

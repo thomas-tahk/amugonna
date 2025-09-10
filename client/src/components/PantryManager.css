@@ -10,8 +10,9 @@
 }
 
 .pantry-header h2 {
-  color: #1f2937;
+  color: #2563eb;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .pantry-header p {
@@ -291,5 +292,91 @@
   .recipe-generator-section {
     margin-top: 30px;
     padding-top: 20px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .pantry-manager {
+    color: #e2e8f0;
+  }
+  
+  .pantry-header h2 {
+    color: #3b82f6;
+  }
+  
+  .pantry-header p {
+    color: #94a3b8;
+  }
+  
+  .add-ingredient-section,
+  .ingredients-list {
+    color: #e2e8f0;
+  }
+  
+  .add-ingredient-form {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .form-group label {
+    color: #e2e8f0;
+  }
+  
+  .form-group input,
+  .form-group select {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: #60a5fa;
+  }
+  
+  .ingredient-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .ingredient-card:hover {
+    border-color: #475569;
+  }
+  
+  .ingredient-info .ingredient-name {
+    color: #f1f5f9;
+  }
+  
+  .ingredient-info .ingredient-category {
+    color: #94a3b8;
+  }
+  
+  .ingredient-info .ingredient-quantity {
+    color: #10b981;
+  }
+  
+  .ingredient-info .ingredient-expiration {
+    color: #f87171;
+  }
+  
+  .ingredient-info .ingredient-added {
+    color: #6b7280;
+  }
+  
+  .empty-pantry {
+    background: #1e293b;
+    color: #94a3b8;
+  }
+  
+  .auth-required {
+    background: #1e293b;
+    color: #94a3b8;
+  }
+  
+  .error-message {
+    background: #991b1b;
+    border-color: #dc2626;
+    color: #fecaca;
   }
 }

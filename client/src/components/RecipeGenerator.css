@@ -358,6 +358,8 @@
   border-radius: 8px;
   position: relative;
   padding-left: 60px;
+  color: #2c3e50;
+  line-height: 1.5;
 }
 
 .recipe-instructions li::before {
@@ -438,6 +440,98 @@
 
 .generate-another-btn:hover {
   background: #2980b9;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .recipe-generator {
+    color: #e2e8f0;
+  }
+  
+  .generator-header h2 {
+    color: #f1f5f9;
+  }
+  
+  .generator-header p {
+    color: #94a3b8;
+  }
+  
+  .generation-form,
+  .generated-recipe {
+    background: #1e293b;
+    color: #e2e8f0;
+  }
+  
+  .selection-header h3 {
+    color: #f1f5f9;
+  }
+  
+  .ingredient-checkbox {
+    background: #334155;
+    color: #e2e8f0;
+  }
+  
+  .ingredient-checkbox:hover {
+    background: #475569;
+  }
+  
+  .preference-group label {
+    color: #e2e8f0;
+  }
+  
+  .preference-group select,
+  .preference-group input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .recipe-header h2 {
+    color: #f1f5f9;
+  }
+  
+  .recipe-description {
+    color: #94a3b8;
+  }
+  
+  .meta-value {
+    color: #f1f5f9;
+  }
+  
+  .recipe-ingredients h3,
+  .recipe-instructions h3 {
+    color: #f1f5f9;
+  }
+  
+  .recipe-instructions li {
+    background: #334155;
+    color: #e2e8f0;
+  }
+  
+  .nutrition-info {
+    background: #334155;
+  }
+  
+  .nutrition-info h3 {
+    color: #f1f5f9;
+  }
+  
+  .nutrition-item {
+    background: #374151;
+  }
+  
+  .ingredient-name {
+    color: #e2e8f0;
+  }
+  
+  .no-ingredients {
+    background: #334155;
+    color: #94a3b8;
+  }
+  
+  .no-ingredients h3 {
+    color: #f87171;
+  }
 }
 
 /* Responsive Design */

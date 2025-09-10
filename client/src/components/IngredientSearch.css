@@ -17,7 +17,12 @@
   border-radius: 8px;
   font-size: 16px;
   background-color: white;
+  color: #1f2937;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
 }
 
 .search-input:focus {
@@ -82,6 +87,49 @@
   color: #6b7280;
   font-size: 14px;
   font-style: italic;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .search-input {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .search-input::placeholder {
+    color: #9ca3af;
+  }
+  
+  .search-input:focus {
+    border-color: #60a5fa;
+  }
+  
+  .search-dropdown {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .search-result {
+    border-bottom-color: #4b5563;
+  }
+  
+  .search-result:hover,
+  .search-result.selected {
+    background-color: #4b5563;
+  }
+  
+  .ingredient-name {
+    color: #f9fafb;
+  }
+  
+  .ingredient-category {
+    color: #d1d5db;
+  }
+  
+  .no-results {
+    color: #d1d5db;
+  }
 }
 
 /* Responsive design */

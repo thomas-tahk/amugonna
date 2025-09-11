@@ -13,7 +13,9 @@
     "dev:server": "cd server && npm run dev",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm run build",
-    "build:server": "cd server && npm run build"
+    "build:server": "cd server && npm run build",
+    "sync-docs": "node scripts/sync-docs.js",
+    "postinstall": "npm run sync-docs"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"

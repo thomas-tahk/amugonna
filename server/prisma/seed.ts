@@ -75,8 +75,12 @@ const dietaryRestrictions = [
 async function main() {
   console.log('Starting database seed...');
 
-  // Clear existing data
-  console.log('Clearing existing ingredients and dietary restrictions...');
+  // Clear existing data in correct order to avoid foreign key constraints
+  console.log('Clearing existing data...');
+  await prisma.favoriteRecipe.deleteMany();
+  await prisma.recipeDietaryTag.deleteMany();
+  await prisma.recipeIngredient.deleteMany();
+  await prisma.recipe.deleteMany();
   await prisma.userIngredient.deleteMany();
   await prisma.userDietaryRestriction.deleteMany();
   await prisma.ingredient.deleteMany();

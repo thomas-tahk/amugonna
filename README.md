@@ -9,7 +9,7 @@
 
 Like many people, I found myself in a frustrating cycle: buying groceries with good intentions, then struggling to combine ingredients into actual meals. The "what's for dinner?" question became a daily source of stress, often leading to food waste and expensive takeout orders.
 
-I wanted to build something that would make cooking more approachable and help people make better use of what they already have. **Amugonna** (a play on "am I gonna make something good?") turns that uncertainty into confidence.
+I wanted to build something that would make cooking more approachable and help people make better use of what they already have. This app serves to answer "what am I cooking next?" based on your available pantry and fridge ingredients, while accommodating your dietary limitations and preferences.
 
 ## ✨ What Makes It Different
 
@@ -45,7 +45,7 @@ cd ..
 npm run dev
 ```
 
-Visit `http://localhost:5173` to start discovering recipes with your ingredients!
+Visit the app to start discovering recipes with your ingredients!
 
 ## 🔧 What's Live Now
 

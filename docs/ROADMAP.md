@@ -1,58 +1,176 @@
 # Development Roadmap
 
-## Phase 1: Foundation (Complete ✅)
+## Strategic Direction Change (December 2025)
+
+**Key Decisions:**
+- ❌ **Removed AI recipe generation** - Quality issues and unpredictable costs
+- ✅ **User-controlled recipe collection** - CRUD operations for personal recipe management
+- ✅ **Meal planning as core feature** - Calendar-based planning with historical data
+- ✅ **No external recipe APIs** - Users import/create their own recipes
+- ✅ **Smart matching without AI** - Algorithmic ranking based on pantry ingredients
+
+## Phase 1: Remove AI & Build Recipe Foundation
+1. [ ] Delete all AI/OpenAI code and related endpoints
+2. [ ] Design Recipe database schema
+3. [ ] Build Recipe CRUD API endpoints
+4. [ ] Build Recipe CRUD UI (create, view, edit, delete)
+
+## Phase 2: Meal Planning (CORE)
+5. [ ] Design MealPlan database schema
+6. [ ] Build meal planning API (CRUD for meal plans)
+7. [ ] Build calendar UI (week/month view)
+8. [ ] Drag-and-drop recipes onto calendar
+9. [ ] Historical view (browse past meal plans)
+10. [ ] Quick actions (copy week, clear week, notes)
+
+## Phase 3: Smart Matching & Shopping
+11. [ ] Recipe ranking algorithm (pantry ingredient match)
+12. [ ] Tiered results (can make now / almost / aspirational)
+13. [ ] Dietary restriction filtering
+14. [ ] Auto-generate shopping list from meal plan
+15. [ ] Shopping list UI
+
+## Phase 4: Recipe Import & Enhancement
+16. [ ] Import from URL (web scraping)
+17. [ ] Import from copy-paste text
+18. [ ] Batch import features
+19. [ ] Recipe sharing (optional)
+
+## Phase 5: Polish & Optional
+20. [ ] Pantry usage tracking (mark ingredients as used after cooking)
+21. [ ] Recipe suggestions based on history ("you liked this 2 weeks ago")
+22. [ ] Meal plan templates (repeat favorite weeks)
+23. [ ] Export features (PDF meal plan, etc.)
+
+---
+
+## Completed Foundation Work ✅
+
+### Infrastructure
 - [x] Project initialization and monorepo setup
 - [x] Basic React frontend with TypeScript
 - [x] Basic Express backend with TypeScript
 - [x] Documentation structure
 - [x] Database setup (PostgreSQL)
-- [x] Basic database schema design
-- [x] Database connection and ORM setup
 - [x] Prisma client generation and schema migration
 - [x] Server-database connectivity verification
 
-## Phase 2: Core Features
-- [ ] User authentication system
-- [ ] Basic ingredient input interface
-- [ ] Recipe data integration (free API)
-- [ ] Simple recipe matching algorithm
-- [ ] Basic dietary restriction filtering
+### Authentication & User Management
+- [x] JWT-based authentication system
+- [x] User registration and login
+- [x] Profile management
+- [x] Authentication context (frontend)
 
-## Phase 3: Enhanced Matching
-- [ ] Sophisticated scoring algorithm
-  - Percentage of ingredients available
-  - Ingredient substitution logic
-  - Dietary restriction compatibility
-  - Allergy/intolerance filtering
-- [ ] Recipe search and filtering
-- [ ] Ingredient suggestions/autocomplete
+### Ingredient Management
+- [x] Ingredient database schema
+- [x] Ingredient search API
+- [x] User pantry CRUD operations
+- [x] Database seeding
+- [x] Pantry management UI (frontend)
 
-## Phase 4: User Experience
-- [ ] User profiles and preferences
-- [ ] Saved recipes and favorites
-- [ ] Ingredient inventory management
-- [ ] Shopping list generation
+---
 
-## Phase 5: Advanced Features
-- [ ] User-generated content integration
-- [ ] Recipe reviews and ratings
-- [ ] Meal planning
-- [ ] Offline functionality
-- [ ] Mobile optimization
+## Technical Specifications
 
-## Phase 6: Polish & Deployment
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Production deployment
-- [ ] User testing and feedback
+### Recipe CRUD Schema
+```typescript
+Recipe {
+  id: string
+  user_id: string
+  name: string
+  description: string
+  source_url?: string
+  source_name?: string
 
-## Current Priority Focus
-1. **Database setup** - PostgreSQL schema for users, recipes, ingredients
-2. **Basic ingredient input** - Clean, fast interface for ingredient entry
-3. **Simple recipe matching** - Initial algorithm to match recipes with available ingredients
-4. **Dietary restriction system** - Core feature for allergies and intolerances
+  ingredients: Ingredient[]
+  instructions: Instruction[]
 
-## Key Design Decisions
-- **Data source**: Start with free API (Spoonacular recommended), add user content later
-- **Matching algorithm**: Sophisticated scoring prioritizing dietary safety and ingredient availability
-- **User experience**: Fast, convenient ingredient input with strong dietary accommodation
+  tags: string[]
+  cuisine_types: string[]
+  dietary_tags: string[]
+  allergens: string[]
+
+  prep_time?: number
+  cook_time?: number
+  servings: number
+  difficulty?: string
+
+  images: string[]
+  video_url?: string
+
+  personal_notes?: string
+  modifications?: string
+  rating?: number
+  times_cooked: number
+  last_cooked?: date
+  is_favorite: boolean
+  is_public: boolean
+
+  created_at: date
+  updated_at: date
+}
+```
+
+### Meal Planning Schema
+```typescript
+MealPlan {
+  id: string
+  user_id: string
+  date: date
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+  recipe_id?: string
+  servings?: number
+  notes?: string
+
+  created_at: date
+  updated_at: date
+}
+```
+
+### Smart Matching Algorithm
+```
+Tiered Ranking System:
+
+Tier 1: Perfect Matches (Score: 90-100)
+├─ User has all ingredients
+├─ Meets all dietary restrictions
+└─ No allergens present
+
+Tier 2: Easy Adaptations (Score: 70-89)
+├─ Missing 1-2 minor ingredients
+├─ OR simple substitution available
+└─ Clearly labeled with suggested modifications
+
+Tier 3: Aspirational (Score: 50-69)
+├─ Missing 3-4 ingredients
+└─ Good for shopping list planning
+
+Tier 4: Out of Scope (Score: <50)
+└─ Don't show or bury at bottom
+```
+
+---
+
+## Storage Considerations
+
+**Meal Planning Historical Data:**
+- Single entry: ~200 bytes
+- One year: ~219 KB per user
+- Ten years: ~2.2 MB per user
+- **Verdict:** Store all history indefinitely (negligible cost)
+
+---
+
+## Out of Scope (For Now)
+
+- ❌ Calorie tracking
+- ❌ Macro counting
+- ❌ Nutrition analysis
+- ❌ AI-generated recipes
+
+*These may be reconsidered based on user feedback after core features are stable.*
+
+---
+
+**Last Updated:** December 29, 2025

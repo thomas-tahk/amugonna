@@ -73,12 +73,10 @@ model Recipe {
   sourceUrl    String?  @map("source_url")
   createdBy    Int?     @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
-  
-  // AI-generated recipe fields
-  isAiGenerated   Boolean @default(false) @map("is_ai_generated")
-  aiPrompt        String? @map("ai_prompt")
-  nutritionalInfo Json?   @map("nutritional_info")
-  difficulty      String? // 'easy', 'medium', 'hard'
+
+  // Recipe metadata
+  nutritionalInfo Json?    @map("nutritional_info")
+  difficulty      String?  // 'easy', 'medium', 'hard'
   cuisine         String?
   tags            String[] @default([])
 

@@ -10,7 +10,6 @@ import type {
   AddIngredientData,
   UpdateIngredientData,
   Recipe,
-  RecipeGenerationRequest,
   RecipesResponse,
 } from '../types';
 
@@ -160,29 +159,16 @@ export const ingredientsApi = {
 
 // Recipes API functions
 export const recipesApi = {
-  generate: async (
-    request: RecipeGenerationRequest,
-    token?: string
-  ): Promise<ApiResponse<{ recipe: Recipe }>> => {
-    return apiRequest('/recipes/generate', {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(request),
-    });
-  },
-
   getRecipes: async (
     params: {
       page?: number;
       limit?: number;
-      aiGenerated?: boolean;
     } = {},
     token?: string
   ): Promise<ApiResponse<RecipesResponse>> => {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.set('page', params.page.toString());
     if (params.limit) queryParams.set('limit', params.limit.toString());
-    if (params.aiGenerated !== undefined) queryParams.set('aiGenerated', params.aiGenerated.toString());
 
     const queryString = queryParams.toString();
     return apiRequest(`/recipes${queryString ? `?${queryString}` : ''}`, {

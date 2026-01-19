@@ -105,8 +105,6 @@ export interface Recipe {
   imageUrl?: string;
   createdBy?: number;
   createdAt: string;
-  isAiGenerated: boolean;
-  aiPrompt?: string;
   nutritionalInfo?: {
     calories: number;
     protein: string;
@@ -123,14 +121,6 @@ export interface Recipe {
     lastName: string;
   };
   recipeIngredients: RecipeIngredient[];
-}
-
-export interface RecipeGenerationRequest {
-  ingredientIds: number[];
-  dietaryRestrictions?: string[];
-  cuisine?: string;
-  servings?: number;
-  maxPrepTime?: number;
 }
 
 export interface RecipesResponse {

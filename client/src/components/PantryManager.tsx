@@ -3,7 +3,6 @@ import type { UserIngredient, Ingredient, AddIngredientData } from '../types';
 import { ingredientsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import IngredientSearch from './IngredientSearch';
-import RecipeGenerator from './RecipeGenerator';
 import './PantryManager.css';
 
 const PantryManager: React.FC = () => {
@@ -256,13 +255,6 @@ const PantryManager: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Recipe Generator Section */}
-      {userIngredients.length > 0 && (
-        <div className="recipe-generator-section">
-          <RecipeGenerator userIngredients={userIngredients} />
-        </div>
-      )}
     </div>
   );
 };

@@ -62,25 +62,49 @@ model UserIngredient {
 
 model Recipe {
   id           Int      @id @default(autoincrement())
-  externalId   String?  @map("external_id")
   title        String
   description  String?
-  instructions String
-  prepTime     Int?     @map("prep_time")
-  cookTime     Int?     @map("cook_time")
-  servings     Int?
-  imageUrl     String?  @map("image_url")
-  sourceUrl    String?  @map("source_url")
-  createdBy    Int?     @map("created_by")
-  createdAt    DateTime @default(now()) @map("created_at")
+  instructions String   @db.Text // Step-by-step instructions (stored as text, parsed by frontend)
+
+  // Source information
+  sourceUrl    String?  @map("source_url") // Original URL if imported
+  sourceName   String?  @map("source_name") // "YouTube", "AllRecipes", "Grandma's cookbook", etc.
+
+  // Time and serving info
+  prepTime     Int?     @map("prep_time") // in minutes
+  cookTime     Int?     @map("cook_time") // in minutes
+  servings     Int      @default(4)
+
+  // Rich media
+  images       String[] @default([]) // Array of image URLs
+  videoUrl     String?  @map("video_url")
+
+  // User-defined categorization
+  cuisineTypes String[] @default([]) @map("cuisine_types") // User can define their own
+  tags         String[] @default([]) // Flexible user-defined tags
+  dietaryTags  String[] @default([]) @map("dietary_tags") // vegetarian, vegan, keto, etc.
+  allergens    String[] @default([]) // User-flagged allergens in this recipe
 
   // Recipe metadata
-  nutritionalInfo Json?    @map("nutritional_info")
   difficulty      String?  // 'easy', 'medium', 'hard'
-  cuisine         String?
-  tags            String[] @default([])
+  nutritionalInfo Json?    @map("nutritional_info")
 
-  creator           User?              @relation(fields: [createdBy], references: [id])
+  // User personalization
+  personalNotes  String?  @map("personal_notes") @db.Text
+  modifications  String?  @map("modifications") @db.Text // "I always double the garlic"
+  rating         Int?     // 1-5 stars, user's personal rating
+  timesCooked    Int      @default(0) @map("times_cooked")
+  lastCooked     DateTime? @map("last_cooked") @db.Date
+
+  // Sharing
+  isPublic       Boolean  @default(false) @map("is_public")
+
+  // Ownership and timestamps
+  createdBy      Int      @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  creator           User             @relation(fields: [createdBy], references: [id])
   recipeIngredients RecipeIngredient[]
   recipeDietaryTags RecipeDietaryTag[]
   favoriteRecipes   FavoriteRecipe[]

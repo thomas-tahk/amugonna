@@ -11,7 +11,7 @@
 
 ## Phase 1: Remove AI & Build Recipe Foundation
 1. [x] Delete all AI/OpenAI code and related endpoints
-2. [ ] Design Recipe database schema
+2. [x] Design Recipe database schema
 3. [ ] Build Recipe CRUD API endpoints
 4. [ ] Build Recipe CRUD UI (create, view, edit, delete)
 

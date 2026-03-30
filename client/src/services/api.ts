@@ -11,6 +11,9 @@ import type {
   UpdateIngredientData,
   Recipe,
   RecipesResponse,
+  CreateRecipeData,
+  UpdateRecipeData,
+  SuggestionsResponse,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
@@ -203,6 +206,38 @@ export const recipesApi = {
   ): Promise<ApiResponse<void>> => {
     return apiRequest(`/recipes/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(token),
+    });
+  },
+
+  createRecipe: async (
+    data: CreateRecipeData,
+    token?: string
+  ): Promise<ApiResponse<{ recipe: Recipe }>> => {
+    return apiRequest('/recipes', {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateRecipe: async (
+    id: number,
+    data: UpdateRecipeData,
+    token?: string
+  ): Promise<ApiResponse<{ recipe: Recipe }>> => {
+    return apiRequest(`/recipes/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify(data),
+    });
+  },
+
+  getSuggestions: async (
+    token?: string
+  ): Promise<ApiResponse<SuggestionsResponse>> => {
+    return apiRequest('/recipes/suggestions', {
+      method: 'GET',
       headers: getAuthHeaders(token),
     });
   },

@@ -101,26 +101,32 @@ export interface Recipe {
   instructions: string;
   prepTime?: number;
   cookTime?: number;
-  servings?: number;
-  imageUrl?: string;
-  createdBy?: number;
-  createdAt: string;
-  nutritionalInfo?: {
-    calories: number;
-    protein: string;
-    carbs: string;
-    fat: string;
-    fiber?: string;
-  };
-  difficulty?: 'easy' | 'medium' | 'hard';
-  cuisine?: string;
+  servings: number;
+  images: string[];
+  videoUrl?: string;
+  cuisineTypes: string[];
   tags: string[];
+  dietaryTags: string[];
+  allergens: string[];
+  difficulty?: string;
+  personalNotes?: string;
+  modifications?: string;
+  rating?: number;
+  timesCooked: number;
+  lastCooked?: string;
+  isPublic: boolean;
+  sourceUrl?: string;
+  sourceName?: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
   creator?: {
     id: number;
     firstName: string;
     lastName: string;
   };
   recipeIngredients: RecipeIngredient[];
+  isFavorite?: boolean;
 }
 
 export interface RecipesResponse {
@@ -132,3 +138,75 @@ export interface RecipesResponse {
     pages: number;
   };
 }
+
+// Suggestion types
+export interface RecipeSuggestion {
+  id: number;
+  title: string;
+  description?: string;
+  prepTime?: number;
+  cookTime?: number;
+  servings: number;
+  difficulty?: string;
+  cuisineTypes: string[];
+  tags: string[];
+  dietaryTags: string[];
+  allergens: string[];
+  images: string[];
+  isFavorite: boolean;
+  matchScore: number;
+  matchedIngredients: number;
+  totalIngredients: number;
+  missingIngredients: { id: number; name: string; category: string }[];
+  hasOptionalIngredients: boolean;
+}
+
+export interface SuggestionsResponse {
+  pantrySize: number;
+  suggestions: {
+    canMakeNow: RecipeSuggestion[];
+    almostThere: RecipeSuggestion[];
+    aspirational: RecipeSuggestion[];
+  };
+}
+
+// Recipe form types
+export interface RecipeIngredientInput {
+  ingredientId: number;
+  name: string;
+  commonUnits: string[];
+  quantity?: number;
+  unit?: string;
+  optional: boolean;
+  preparationNote?: string;
+}
+
+export interface CreateRecipeData {
+  title: string;
+  description?: string;
+  instructions: string;
+  ingredients: {
+    ingredientId: number;
+    quantity?: number;
+    unit?: string;
+    optional?: boolean;
+    preparationNote?: string;
+  }[];
+  prepTime?: number;
+  cookTime?: number;
+  servings?: number;
+  cuisineTypes?: string[];
+  tags?: string[];
+  dietaryTags?: string[];
+  allergens?: string[];
+  difficulty?: string;
+  sourceUrl?: string;
+  sourceName?: string;
+  isPublic?: boolean;
+}
+
+export type UpdateRecipeData = Partial<CreateRecipeData> & {
+  personalNotes?: string;
+  modifications?: string;
+  rating?: number;
+};

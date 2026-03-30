@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import PantryManager from './components/PantryManager';
+import RecipeManager from './components/RecipeManager';
 import './App.css';
+
+type AppTab = 'recipes' | 'pantry';
 
 const AppContent: React.FC = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<AppTab>('recipes');
 
   if (isLoading) {
     return (
@@ -22,9 +26,9 @@ const AppContent: React.FC = () => {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1 className="app-title">🍽️ Amugonna</h1>
+          <h1 className="app-title">Amugonna</h1>
           <p className="app-subtitle">Find recipes based on what you have</p>
-          
+
           {isAuthenticated && user && (
             <div className="user-info">
               <span>Welcome, {user.firstName}!</span>
@@ -36,9 +40,26 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
+      {isAuthenticated && (
+        <nav className="app-nav">
+          <button
+            className={`nav-btn ${activeTab === 'recipes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('recipes')}
+          >
+            Recipes
+          </button>
+          <button
+            className={`nav-btn ${activeTab === 'pantry' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pantry')}
+          >
+            My Pantry
+          </button>
+        </nav>
+      )}
+
       <main className="app-main">
         {isAuthenticated ? (
-          <PantryManager />
+          activeTab === 'recipes' ? <RecipeManager /> : <PantryManager />
         ) : (
           <AuthForm />
         )}

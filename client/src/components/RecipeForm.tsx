@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Recipe, RecipeIngredientInput, CreateRecipeData, UpdateRecipeData } from '../types';
 import { recipesApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';

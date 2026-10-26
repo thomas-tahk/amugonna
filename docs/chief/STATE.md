@@ -1,9 +1,9 @@
 # Chief state
-Vision: none current — README still describes AI recipe generation, which was removed 2025-12 (docs/ROADMAP.md "Strategic Direction Change")
-Phase: Shape — re-confirm intent, write docs/chief/vision.md
-Built so far: JWT auth, ingredient search + pantry CRUD, recipe CRUD + pantry-matching suggestions API + UI, bundled static recipe dataset (from TheMealDB), deploy config for Vercel + Render + Neon (2026-04-13; live status unknown)
-Roadmap claims vs reality: ROADMAP boxes 3–4 unchecked but recipe CRUD API + UI were committed 2026-03-27/30
-Hosting flag: Render free tier sleeps — re-pick during Plan (his rule: no idle-pausing backends)
-Next action: Shape — AI back in or not, who it's for, meal planning still core?
-Waiting on him: Shape questions (asked 2026-10-25)
+Vision: docs/chief/vision.md (Shape round 1; done-gate draft unconfirmed)
+Phase: Shape round 2 — research done, owner decides AI role + recipe data source
+Research: docs/chief/research/current-state.md, docs/chief/research/ai-and-procurement.md
+Key finding: dataset is the blocker (21 recipes, 40 ingredients, exact-name match → 1 match for a normal pantry). Fix data + fuzzy matching before any AI question matters.
+Also: postinstall scripts/sync-docs.js rewrites docs with stale OpenAI text; no prisma migrations dir; server build needs prisma generate; local server/.env holds a live-looking OpenAI key (told owner to revoke)
+Next action: owner picks AI role (photo→pantry / mood re-rank / import fallback / none) and recipe source; then Plan
+Waiting on him: those two decisions (asked 2026-10-25)
 Updated: 2026-10-25

@@ -13,8 +13,14 @@ Lower the inertia of "what do I make right now?" Look at what's in your fridge a
 - Macros, nutrition, health tracking. (Owner: "idgaf about macros.")
 - Meal-planning calendar as the core. The 2025-12 roadmap made it core; owner's 2026-10-25 framing doesn't mention it. Treat as later or never.
 
-## Open: AI's role
+## AI's role (decided 2026-10-25)
+Two jobs only: (1) fridge/pantry photo → item list the user confirms; (2) mood re-rank ("something warm and quick") over recipes the matcher already found. AI never invents recipes. Matching stays algorithmic. Evidence: docs/chief/research/ai-and-procurement.md.
+
+## (superseded) Open: AI's role
 Undecided. Owner wants to see current state + where AI could have impact before deciding. → Research.
+
+## Prerequisite before any AI
+Real recipe data + fuzzy ingredient matching + free-text pantry items (audit: 21 recipes → 1 match for a normal pantry).
 
 ## Done-gate (draft, unconfirmed)
 I open Amugonna on my phone, tick off what's in my fridge, and within seconds see a meal I can make right now, and I cook it.

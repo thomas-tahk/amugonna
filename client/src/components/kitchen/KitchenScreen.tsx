@@ -18,6 +18,7 @@ interface Have {
 type Pending = Map<number, { want: boolean; name: string }>;
 
 const BATCH_MS = 400;
+const COUNT_DEBOUNCE_MS = 200;
 const DEFAULT_STAPLES = 'water, salt, black pepper, cooking oil';
 const toHave = (list: UserIngredient[]): Have[] => list.map((u) => ({ id: u.ingredient.id, name: u.ingredient.name }));
 
@@ -29,7 +30,9 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState({ text: '', n: 0 });
   const [filter, setFilter] = useState('');
-  const [cookCount, setCookCount] = useState<number | null>(null);
+  // Cook-now count for the CURRENT pantry: stale = a save is pending/queued or the fetch hasn't started yet.
+  const [count, setCount] = useState<{ status: 'stale' | 'loading' | 'ready' | 'error'; n: number }>({ status: 'stale', n: 0 });
+  const [writing, setWriting] = useState(0); // saves queued or in flight
   const [saving, setSaving] = useState(false);
 
   // Taps not yet confirmed by the server (queued or in flight): ingredient id -> wanted state.
@@ -40,7 +43,6 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   const alive = useRef(true);
   // All pantry writes go through this one chain: a single request in flight at a time.
   const chain = useRef<Promise<unknown>>(Promise.resolve());
-  const queued = useRef(0);
   const countSeq = useRef(0);
 
   const setPending = (next: Pending) => {
@@ -53,20 +55,21 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   };
   const say = (text: string) => setNotice((n) => ({ text, n: n.n + 1 }));
 
+  // Only the newest request may set the count; anything older (or superseded by a later tap/save) is ignored.
   const refreshCount = useCallback(() => {
     const mine = ++countSeq.current;
-    setCookCount(null);
+    setCount({ status: 'loading', n: 0 });
+    const current = () => alive.current && countSeq.current === mine;
     kitchenApi
       .cookNowCount()
-      .then((n) => alive.current && countSeq.current === mine && setCookCount(n))
-      .catch(() => undefined); // no count on error
+      .then((n) => current() && setCount({ status: 'ready', n }))
+      .catch(() => current() && setCount({ status: 'error', n: 0 })); // no count on error
   }, []);
 
   const enqueue = <T,>(job: () => Promise<T>): Promise<T> => {
-    queued.current++;
+    setWriting((w) => w + 1);
     const run = pantrySync.track(chain.current.then(job)).finally(() => {
-      queued.current--;
-      if (alive.current && queued.current === 0 && !timer.current && pendingRef.current.size === 0) refreshCount();
+      if (alive.current) setWriting((w) => w - 1);
     });
     chain.current = run.catch(() => undefined);
     return run;
@@ -80,11 +83,10 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
         if (!alive.current) return;
         setServerList(toHave(mine));
         setCommon(c);
-        refreshCount();
       })
       .catch((e: Error) => alive.current && setLoadError(e.message))
       .finally(() => alive.current && setLoading(false));
-  }, [refreshCount]);
+  }, []);
 
   // Sends the queued taps. Entries that already match the server are dropped; an empty change sends nothing.
   const flushJob = async (keepalive = false): Promise<boolean> => {
@@ -157,6 +159,18 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
+
+  // The count follows the pantry: while any tap/save is pending the old number is dropped (and any request
+  // in flight is invalidated); once everything has settled, refetch after a short debounce.
+  const unsettled = writing > 0 || pending.size > 0;
+  useEffect(() => {
+    if (loading) return;
+    countSeq.current++;
+    setCount((c) => (c.status === 'stale' ? c : { status: 'stale', n: 0 }));
+    if (unsettled) return;
+    const t = setTimeout(refreshCount, COUNT_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [loading, unsettled, server, refreshCount]);
 
   // What the screen shows: server state with unconfirmed taps applied on top.
   const have: Have[] = [
@@ -303,8 +317,14 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
       </section>
 
       <div className="kitchen-cta">
-        <button type="button" className="btn btn-primary btn-block" onClick={goCook} disabled={saving}>
-          {saving ? 'Saving…' : `See what I can cook${cookCount === null ? '' : ` (${cookCount})`} →`}
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          onClick={goCook}
+          disabled={saving}
+          aria-busy={saving || unsettled || count.status === 'stale' || count.status === 'loading'}
+        >
+          {saving ? 'Saving…' : `See what I can cook${count.status === 'ready' ? ` (${count.n})` : ''} →`}
         </button>
       </div>
     </div>

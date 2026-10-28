@@ -29,6 +29,8 @@ let hold: boolean;
 let waiting: { body: Json; release: () => void }[];
 let cookCount: number;
 let suggestionsFail: boolean;
+let holdSuggestions: boolean;
+let suggestWaiting: (() => void)[];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function ok(data: unknown) {
@@ -42,6 +44,8 @@ beforeEach(() => {
   waiting = [];
   cookCount = 12;
   suggestionsFail = false;
+  holdSuggestions = false;
+  suggestWaiting = [];
   bulkImpl = (body) => {
     const add = (body.add as (number | string)[] | undefined) ?? [];
     const remove = (body.remove as number[] | undefined) ?? [];
@@ -76,6 +80,12 @@ beforeEach(() => {
       }
       if (url.includes('/recipes/suggestions')) {
         if (suggestionsFail) return { json: async () => ({ success: false, message: 'nope' }) };
+        if (holdSuggestions) {
+          const n = cookCount; // the answer is fixed when the request is made (pantry as of then)
+          return new Promise((resolve) =>
+            suggestWaiting.push(() => resolve(ok({ cookNow: Array.from({ length: n }, (_, i) => ({ id: i })), oneAway: [], twoAway: [] }))),
+          );
+        }
         return ok({ pantrySize: pantry.length, totalRecipes: 100, cookNow: Array.from({ length: cookCount }, (_, i) => ({ id: i })), oneAway: [], twoAway: [] });
       }
       if (url.includes('/ingredients/user/bulk')) {
@@ -303,6 +313,45 @@ describe('KitchenScreen', () => {
     cookCount = 3;
     await user.click(screen.getByRole('button', { name: 'Onion' }));
     expect(await screen.findByRole('button', { name: 'See what I can cook (3) →' })).toBeInTheDocument();
+  });
+
+  it('a count for an older pantry that resolves after a newer save never wins, and no stale count shows while saving', async () => {
+    holdSuggestions = true;
+    cookCount = 0; // pantry is empty: the first count request will answer 0
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const cta = () => screen.getByRole('button', { name: /See what I can cook/ });
+    await screen.findByRole('button', { name: 'Onion' });
+    await waitFor(() => expect(suggestWaiting).toHaveLength(1)); // request A (empty pantry)
+    expect(cta()).toHaveAttribute('aria-busy', 'true');
+    suggestWaiting.shift()!(); // A resolves with 0 ...
+    await waitFor(() => expect(cta()).toHaveAttribute('aria-busy', 'false'));
+    expect(cta()).toHaveTextContent('See what I can cook (0) →');
+
+    // ... then the person completes the pantry. While the save is pending/in flight the old 0 must not show.
+    hold = true;
+    cookCount = 7; // what the server would answer once the save has landed
+    await user.click(screen.getByRole('button', { name: 'Onion' }));
+    expect(cta()).toHaveAttribute('aria-busy', 'true');
+    expect(cta()).not.toHaveTextContent('(0)');
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    expect(cta()).toHaveAttribute('aria-busy', 'true');
+    expect(cta()).not.toHaveTextContent('(');
+    waiting.shift()!.release();
+
+    // Count request B starts after the save settles (debounced); a response for an older pantry must be ignored.
+    await waitFor(() => expect(suggestWaiting).toHaveLength(1));
+    cookCount = 9;
+    await user.click(screen.getByRole('button', { name: 'Garlic' })); // supersedes B
+    expect(cta()).not.toHaveTextContent('(');
+    suggestWaiting.shift()!(); // B (7) resolves late
+    await sleep(50);
+    expect(cta()).not.toHaveTextContent('(7)');
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    waiting.shift()!.release();
+    await waitFor(() => expect(suggestWaiting).toHaveLength(1)); // request C
+    suggestWaiting.shift()!();
+    expect(await screen.findByRole('button', { name: 'See what I can cook (9) →' })).toHaveAttribute('aria-busy', 'false');
   });
 
   it('shows no count when suggestions fail', async () => {

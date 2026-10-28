@@ -40,6 +40,9 @@ test('done-gate: pantry -> recipes I can cook -> open one -> cook it', async ({ 
   await expect(page.getByRole('heading', { name: `In your kitchen (${picks.length + 2})` })).toBeVisible();
   const cta = page.getByRole('button', { name: /See what I can cook \(\d+\)/ });
   await expect(cta).toBeVisible();
+  // The count is only meaningful once saves have settled and the count request is back.
+  await expect(cta).toHaveAttribute('aria-busy', 'false');
+  await expect(cta).toHaveText(/\(\d+\)/);
   const n = Number(/\((\d+)\)/.exec((await cta.textContent()) ?? '')![1]);
   expect(n).toBeGreaterThan(0);
   await shot(page, testInfo, '04-kitchen-with-cta');

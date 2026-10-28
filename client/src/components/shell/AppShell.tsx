@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { BrandIcon } from './icons';
-import { DEFAULT_TAB, TABS } from './tabs';
-import type { TabId } from './tabs';
+import { TABS } from './tabs';
+import { focusHeading } from './focus';
+import { navigate, tabHash, useRoute } from './route';
 
 const AppShell: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>(DEFAULT_TAB);
+  // The URL hash is the single source of truth for the tab (and the open recipe, see CookScreen).
+  const { tab: activeTab } = useRoute();
+  const mainRef = useRef<HTMLElement>(null);
   const active = TABS.find((t) => t.id === activeTab) ?? TABS[0];
   const Screen = active.Screen;
+
+  // Fallback for screens that show their heading straight away: Kitchen and Cook focus their own
+  // heading once their data has loaded.
+  useEffect(() => {
+    focusHeading(mainRef.current?.querySelector<HTMLElement>('h1, h2'));
+  }, [activeTab]);
 
   return (
     <div className="app">
@@ -25,7 +34,7 @@ const AppShell: React.FC = () => {
                 type="button"
                 aria-current={id === activeTab ? 'page' : undefined}
                 className="tab"
-                onClick={() => setActiveTab(id)}
+                onClick={() => navigate(tabHash(id))}
               >
                 <Icon />
                 <span>{label}</span>
@@ -39,8 +48,8 @@ const AppShell: React.FC = () => {
           </button>
         </div>
       </header>
-      <main className="app-main">
-        <Screen key={active.id} onNavigate={setActiveTab} />
+      <main className="app-main" ref={mainRef}>
+        <Screen key={active.id} onNavigate={(id) => navigate(tabHash(id))} />
       </main>
     </div>
   );

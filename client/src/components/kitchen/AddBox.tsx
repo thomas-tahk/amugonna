@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { kitchenApi } from '../../services/kitchenApi';
+import { focusHeading } from '../shell/focus';
 import type { ParsedItem, SuggestItem } from '../../types/kitchen';
 
 interface Props {
@@ -9,9 +10,11 @@ interface Props {
   onAddTexts: (texts: (number | string)[]) => Promise<void>;
   /** Called with the raw input text on every change (used to filter the quick picks). */
   onTextChange?: (text: string) => void;
+  /** Called when the confirm panel opens or closes (the screen hides its sticky button while it is open). */
+  onConfirmChange?: (open: boolean) => void;
 }
 
-const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
+const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange, onConfirmChange }) => {
   const [text, setText] = useState('');
   const [suggestions, setSuggestions] = useState<SuggestItem[]>([]);
   const [active, setActive] = useState(-1);
@@ -19,6 +22,24 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const wasOpen = useRef(false);
+  const open = !!parsed;
+  useEffect(() => {
+    onConfirmChange?.(open);
+  }, [open, onConfirmChange]);
+  useEffect(() => () => onConfirmChange?.(false), [onConfirmChange]);
+
+  // Panel opens: move focus to its heading and make sure Add / Cancel are on screen (above the tab bar).
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      focusHeading(titleRef.current, { preventScroll: true, force: true });
+      actionsRef.current?.scrollIntoView?.({ block: 'nearest' });
+    }
+    wasOpen.current = open;
+  }, [open]);
   useEffect(() => {
     onTextChange?.(text);
   }, [text, onTextChange]);
@@ -51,6 +72,12 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
     setSuggestions([]);
     setActive(-1);
     setParsed(null);
+  };
+
+  /** Back to the input after Add or Cancel (the panel, and the button that was pressed, are gone). */
+  const resetAndFocus = () => {
+    reset();
+    inputRef.current?.focus();
   };
 
   const pick = (item: SuggestItem) => {
@@ -101,7 +128,7 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
     setError(null);
     try {
       await onAddTexts(parsed.map((p) => p.ingredientId ?? p.input));
-      reset();
+      resetAndFocus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save. Please try again.');
     } finally {
@@ -120,6 +147,7 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
         <div className="kitchen-add-field">
           <input
             id={`${listId}-input`}
+            ref={inputRef}
             className="input"
             type="text"
             role="combobox"
@@ -175,7 +203,9 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
 
       {parsed && (
         <div className="kitchen-confirm card">
-          <p className="kitchen-confirm-title">Here is what we found. Tap × to drop anything wrong.</p>
+          <h3 className="kitchen-confirm-title" ref={titleRef} tabIndex={-1}>
+            Here is what we found. Tap × to drop anything wrong.
+          </h3>
           <ul className="kitchen-chips" aria-label="Items to add">
             {parsed.map((p, i) => (
               <li key={`${p.input}-${i}`}>
@@ -198,11 +228,11 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
               </li>
             ))}
           </ul>
-          <div className="kitchen-confirm-actions">
+          <div className="kitchen-confirm-actions" ref={actionsRef}>
             <button type="button" className="btn btn-primary" onClick={confirm} disabled={busy}>
               Add {parsed.length}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={reset} disabled={busy}>
+            <button type="button" className="btn btn-ghost" onClick={resetAndFocus} disabled={busy}>
               Cancel
             </button>
           </div>

@@ -4,7 +4,8 @@ import RecipeManager from '../RecipeManager';
 import CookScreen from '../cook/CookScreen';
 import { BookmarkIcon, CookIcon, KitchenIcon } from './icons';
 
-export type TabId = 'kitchen' | 'cook' | 'recipes';
+import type { TabId } from './route';
+export type { TabId };
 
 export interface TabDef {
   id: TabId;

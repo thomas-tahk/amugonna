@@ -10,7 +10,7 @@ vi.mock('./contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useAuth: () => authState.value,
 }));
-vi.mock('./components/PantryManager', () => ({
+vi.mock('./components/kitchen/KitchenScreen', () => ({
   default: () => <div data-testid="screen-pantry">PantryManager screen</div>,
 }));
 vi.mock('./components/RecipeManager', () => ({

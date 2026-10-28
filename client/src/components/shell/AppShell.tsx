@@ -40,7 +40,7 @@ const AppShell: React.FC = () => {
         </div>
       </header>
       <main className="app-main">
-        <Screen key={active.id} />
+        <Screen key={active.id} onNavigate={setActiveTab} />
       </main>
     </div>
   );

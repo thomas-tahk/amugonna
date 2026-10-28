@@ -98,6 +98,9 @@ export async function upsertRecipe(
   });
   const idByCanonical = new Map(found.map((f) => [f.canonical, f.id]));
 
+  // Unknown ingredients are created here, outside the recipe transaction, on purpose: creation is an
+  // upsert on the unique canonical, so it is idempotent and safe under concurrent imports, and a
+  // failed recipe write leaves behind at most harmless, reusable ingredient rows.
   let ingredientsCreated = 0;
   for (const canonical of canonicals) {
     if (idByCanonical.has(canonical)) continue;

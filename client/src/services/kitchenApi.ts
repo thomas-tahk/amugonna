@@ -46,6 +46,11 @@ export const kitchenApi = {
   cookNowCount: async (): Promise<number> =>
     (await request<{ cookNow: unknown[] }>('/recipes/suggestions')).cookNow.length,
 
-  bulk: (change: { add?: (number | string)[]; remove?: number[] }) =>
-    request<BulkResult>('/ingredients/user/bulk', { method: 'POST', body: JSON.stringify(change) }),
+  /** `keepalive` lets the request outlive the page (used when the tab is being closed or reloaded). */
+  bulk: (change: { add?: (number | string)[]; remove?: number[] }, opts: { keepalive?: boolean } = {}) =>
+    request<BulkResult>('/ingredients/user/bulk', {
+      method: 'POST',
+      body: JSON.stringify(change),
+      ...(opts.keepalive && { keepalive: true }),
+    }),
 };

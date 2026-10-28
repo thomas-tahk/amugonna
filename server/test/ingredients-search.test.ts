@@ -11,7 +11,13 @@ if (!hasDb) {
   console.warn('[server tests] TEST_DATABASE_URL is not set: skipping DB integration tests (ingredient search).');
 }
 
+let fixtureRecipeId: number | undefined;
+
 afterAll(async () => {
+  if (fixtureRecipeId) {
+    await prisma.recipeIngredient.deleteMany({ where: { recipeId: fixtureRecipeId } });
+    await prisma.recipe.delete({ where: { id: fixtureRecipeId } });
+  }
   await prisma.$disconnect();
 });
 
@@ -52,8 +58,9 @@ describe.skipIf(!hasDb)('GET /api/ingredients?search= privacy (needs a migrated 
       create: { name: PUBLIC_ONLY, canonical: PUBLIC_ONLY },
     });
     const recipe = await prisma.recipe.create({
-      data: { title: `pub ${tag}`, instructions: 'x', servings: 1, isPublic: true, createdBy: b.u.id },
+      data: { title: `pub ${tag}`, instructions: 'x', servings: 1, isPublic: true, attribution: 'Test', createdBy: b.u.id },
     });
+    fixtureRecipeId = recipe.id;
     await prisma.recipeIngredient.create({ data: { recipeId: recipe.id, ingredientId: pub.id } });
   }, 120_000);
 

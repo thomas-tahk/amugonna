@@ -22,6 +22,7 @@ const PantryManager: React.FC = () => {
     if (isAuthenticated) {
       loadUserIngredients();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const loadUserIngredients = async () => {

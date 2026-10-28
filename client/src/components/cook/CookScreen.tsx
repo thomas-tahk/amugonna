@@ -17,7 +17,7 @@ const RecipeCard: React.FC<{ recipe: RecipeMatch; onOpen: (id: number) => void }
     <button type="button" className="card cook-card" onClick={() => onOpen(recipe.id)}>
       <span className="cook-card-media">
         {recipe.imageUrl ? (
-          <img src={recipe.imageUrl} alt={recipe.title} loading="lazy" />
+          <img src={recipe.imageUrl} alt="" loading="lazy" />
         ) : (
           <span className="cook-card-placeholder" aria-hidden="true">
             {recipe.title.charAt(0)}
@@ -62,17 +62,21 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
   const [data, setData] = useState<Suggestions | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(
+    () => (window.history.state?.cookRecipe as number | undefined) ?? null,
+  );
   const [showTwo, setShowTwo] = useState(false);
 
+  const latest = useRef(0);
   const load = useCallback(() => {
+    const mine = ++latest.current;
     setLoading(true);
     setError(null);
     cookApi
       .getSuggestions()
-      .then(setData)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((d) => mine === latest.current && setData(d))
+      .catch((e: Error) => mine === latest.current && setError(e.message))
+      .finally(() => mine === latest.current && setLoading(false));
   }, []);
 
   useEffect(load, [load]);
@@ -95,7 +99,7 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
   }, [openId]);
 
   useEffect(() => {
-    const onPop = () => setOpenId(null);
+    const onPop = (e: PopStateEvent) => setOpenId(e.state?.cookRecipe ?? null);
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);

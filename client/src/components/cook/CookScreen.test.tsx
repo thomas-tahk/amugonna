@@ -71,6 +71,7 @@ function mockFetch(data: Suggestions = suggestions) {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, '');
   localStorage.setItem('authToken', 'tok');
 });
 afterEach(() => {
@@ -164,7 +165,7 @@ describe('Cook view', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     await userEvent.click(screen.getByRole('button', { name: 'Copy missing items' }));
     expect(writeText).toHaveBeenCalledWith('lemon\nbasil');
-    expect(await screen.findByText('Copied ✓')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Copied ✓' })).toBeInTheDocument();
   });
 
   it('Back returns to results', async () => {
@@ -215,12 +216,41 @@ describe('Cook view', () => {
     const scrollTo = vi.fn();
     vi.stubGlobal('scrollTo', scrollTo);
     Object.defineProperty(window, 'scrollY', { value: 420, configurable: true });
-    await openLemon();
-    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    try {
+      await openLemon();
+      expect(scrollTo).toHaveBeenCalledWith(0, 0);
+      await userEvent.click(screen.getByRole('button', { name: /Back/ }));
+      await screen.findByRole('heading', { name: 'Cook now (2)' });
+      expect(scrollTo).toHaveBeenLastCalledWith(0, 420);
+    } finally {
+      Reflect.deleteProperty(window, 'scrollY');
+    }
+  });
+
+  it('keeps the open recipe across a tab remount without extra history entries', async () => {
+    mockFetch();
+    const first = render(<CookScreen />);
+    await userEvent.click(await screen.findByRole('button', { name: /Lemon Chicken/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Lemon Chicken' });
+    const push = vi.spyOn(window.history, 'pushState');
+    first.unmount(); // switching to Kitchen
+    render(<CookScreen />); // switching back
+    expect(await screen.findByRole('heading', { level: 1, name: 'Lemon Chicken' })).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+    // back to results, then open another: exactly one new entry
     await userEvent.click(screen.getByRole('button', { name: /Back/ }));
     await screen.findByRole('heading', { name: 'Cook now (2)' });
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 420);
-    Reflect.deleteProperty(window, 'scrollY');
+    await userEvent.click(screen.getByRole('button', { name: /Lemon Chicken/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Lemon Chicken' });
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses empty alt text on images (title is the button label)', async () => {
+    mockFetch({ ...suggestions, cookNow: [match(9, 'Pic', { imageUrl: 'http://x/y.png' })] });
+    render(<CookScreen />);
+    await screen.findByText('Cook now (1)');
+    expect(document.querySelector('.cook-card img')).toHaveAttribute('alt', '');
+    expect(screen.getByRole('button', { name: /Pic/ })).toBeInTheDocument();
   });
 
   it('works without wake lock support', async () => {

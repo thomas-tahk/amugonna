@@ -63,16 +63,26 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   // Browsers drop the lock when the tab is hidden, so re-acquire on return.
   useEffect(() => {
     let sentinel: WakeLockSentinelLike | null = null;
+    let pending = false;
     let closed = false;
     const wl = (navigator as NavWithWakeLock).wakeLock;
     if (!wl) return;
     const acquire = () => {
+      if (pending) return;
+      pending = true;
       wl.request('screen')
         .then((s) => {
-          if (closed) void s.release();
-          else sentinel = s;
+          if (closed) void Promise.resolve(s.release()).catch(() => {});
+          else {
+            const old = sentinel;
+            sentinel = s;
+            if (old) void Promise.resolve(old.release()).catch(() => {});
+          }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          pending = false;
+        });
     };
     const onVisible = () => {
       if (document.visibilityState === 'visible' && !closed) acquire();
@@ -161,7 +171,7 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
       {back}
       <h1 className="cook-view-title">{recipe.title}</h1>
       {recipe.imageUrl ? (
-        <img className="cook-view-media" src={recipe.imageUrl} alt={recipe.title} />
+        <img className="cook-view-media" src={recipe.imageUrl} alt="" />
       ) : (
         <div className="cook-view-media cook-card-placeholder" aria-hidden="true">
           {recipe.title.charAt(0)}
@@ -182,7 +192,7 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
                   <IngredientRow key={i.canonical + i.name} ing={i} />
                 ))}
               </ul>
-              <button type="button" className="btn btn-secondary" onClick={copyMissing} aria-live="polite">
+              <button type="button" className="btn btn-secondary" onClick={copyMissing}>
                 {copyLabel ?? 'Copy missing items'}
               </button>
             </div>
@@ -226,6 +236,9 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
           )}
         </p>
       )}
+      <p className="visually-hidden" role="status">
+        {copyLabel === 'Copied ✓' ? 'Copied to clipboard' : (copyLabel ?? '')}
+      </p>
     </article>
   );
 };

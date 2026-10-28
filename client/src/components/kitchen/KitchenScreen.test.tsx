@@ -24,6 +24,12 @@ type Json = Record<string, unknown>;
 let pantry: ReturnType<typeof entry>[];
 let calls: { url: string; method: string; body?: Json }[];
 let bulkImpl: (body: Json) => Json | Promise<Json>;
+// Deferred bulk: when `hold` is on, bulk requests wait here until released.
+let hold: boolean;
+let waiting: { body: Json; release: () => void }[];
+let cookCount: number;
+let suggestionsFail: boolean;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function ok(data: unknown) {
   return { json: async () => ({ success: true, data }) };
@@ -32,6 +38,10 @@ function ok(data: unknown) {
 beforeEach(() => {
   pantry = [];
   calls = [];
+  hold = false;
+  waiting = [];
+  cookCount = 12;
+  suggestionsFail = false;
   bulkImpl = (body) => {
     const add = (body.add as (number | string)[] | undefined) ?? [];
     const remove = (body.remove as number[] | undefined) ?? [];
@@ -64,7 +74,18 @@ beforeEach(() => {
           ],
         });
       }
-      if (url.includes('/ingredients/user/bulk')) return { json: async () => bulkImpl(body!) };
+      if (url.includes('/recipes/suggestions')) {
+        if (suggestionsFail) return { json: async () => ({ success: false, message: 'nope' }) };
+        return ok({ pantrySize: pantry.length, totalRecipes: 100, cookNow: Array.from({ length: cookCount }, (_, i) => ({ id: i })), oneAway: [], twoAway: [] });
+      }
+      if (url.includes('/ingredients/user/bulk')) {
+        if (hold) {
+          return new Promise((resolve) =>
+            waiting.push({ body: body!, release: () => resolve({ json: async () => bulkImpl(body!) }) }),
+          );
+        }
+        return { json: async () => bulkImpl(body!) };
+      }
       if (url.includes('/ingredients/user')) return ok({ ingredients: pantry });
       throw new Error(`unmocked ${url}`);
     }),
@@ -190,5 +211,116 @@ describe('KitchenScreen', () => {
     render(<KitchenScreen onNavigate={onNavigate} />);
     await user.click(await screen.findByRole('button', { name: /See what I can cook/ }));
     expect(onNavigate).toHaveBeenCalledWith('cook');
+  });
+
+  it('tick then untick within the window sends nothing', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const onion = await screen.findByRole('button', { name: 'Onion' });
+    await user.click(onion);
+    await user.click(onion);
+    await sleep(700);
+    expect(bulkCalls()).toHaveLength(0);
+    expect(onion).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('flushes a pending batch when the screen unmounts', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<KitchenScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Onion' }));
+    unmount();
+    await waitFor(() => expect(bulkCalls()).toHaveLength(1));
+    expect(bulkCalls()[0].body).toEqual({ add: [1] });
+  });
+
+  it('the CTA shows Saving…, waits for pending saves, then navigates', async () => {
+    hold = true;
+    const onNavigate = vi.fn();
+    const user = userEvent.setup();
+    render(<KitchenScreen onNavigate={onNavigate} />);
+    await user.click(await screen.findByRole('button', { name: 'Onion' }));
+    await user.click(screen.getByRole('button', { name: /See what I can cook/ }));
+    expect(screen.getByRole('button', { name: /Saving/ })).toBeInTheDocument();
+    await waitFor(() => expect(waiting).toHaveLength(1)); // flushed immediately, not after 400ms
+    expect(waiting[0].body).toEqual({ add: [1] });
+    expect(onNavigate).not.toHaveBeenCalled();
+    waiting.shift()!.release();
+    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('cook'));
+  });
+
+  it('serializes writes: one request in flight, the next batch waits', async () => {
+    hold = true;
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Onion' }));
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    await user.click(screen.getByRole('button', { name: 'Garlic' }));
+    await sleep(700);
+    expect(waiting).toHaveLength(1); // second batch not sent yet
+    waiting.shift()!.release();
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    expect(waiting[0].body).toEqual({ add: [2] });
+    waiting.shift()!.release();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'In your kitchen (2)' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Onion' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Garlic' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('free-text add is queued behind an in-flight toggle batch', async () => {
+    hold = true;
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Onion' }));
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    await user.type(screen.getByRole('combobox'), 'eggs, scalions{Enter}');
+    await user.click(await screen.findByRole('button', { name: 'Add 2' }));
+    await sleep(300);
+    expect(waiting).toHaveLength(1);
+    waiting.shift()!.release();
+    await waitFor(() => expect(waiting).toHaveLength(1));
+    expect(waiting[0].body).toEqual({ add: ['eggs', 'scalions'] });
+    waiting.shift()!.release();
+    expect(await screen.findByRole('heading', { name: 'In your kitchen (3)' })).toBeInTheDocument();
+  });
+
+  it('typing filters the quick picks; clearing restores them', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const input = await screen.findByRole('combobox');
+    await user.type(input, 'GAR');
+    expect(screen.getByRole('button', { name: 'Garlic' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Onion' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Dairy & eggs' })).not.toBeInTheDocument();
+    await user.clear(input);
+    expect(screen.getByRole('button', { name: 'Onion' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dairy & eggs' })).toBeInTheDocument();
+  });
+
+  it('the CTA shows the cook-now count and refreshes after saves settle', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    expect(await screen.findByRole('button', { name: 'See what I can cook (12) →' })).toBeInTheDocument();
+    cookCount = 3;
+    await user.click(screen.getByRole('button', { name: 'Onion' }));
+    expect(await screen.findByRole('button', { name: 'See what I can cook (3) →' })).toBeInTheDocument();
+  });
+
+  it('shows no count when suggestions fail', async () => {
+    suggestionsFail = true;
+    render(<KitchenScreen />);
+    expect(await screen.findByRole('button', { name: 'See what I can cook →' })).toBeInTheDocument();
+  });
+
+  it('Enter after typing more than a highlighted suggestion parses the typed text', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const input = await screen.findByRole('combobox');
+    await user.type(input, 'but');
+    await screen.findByRole('option', { name: /Butter/ });
+    await user.keyboard('{ArrowDown}');
+    await user.type(input, 'ter, eggs{Enter}');
+    await waitFor(() => expect(calls.some((c) => c.url.includes('/user/parse'))).toBe(true));
+    expect(calls.find((c) => c.url.includes('/user/parse'))!.body).toEqual({ text: 'butter, eggs' });
+    expect(bulkCalls()).toHaveLength(0);
   });
 });

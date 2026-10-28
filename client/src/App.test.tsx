@@ -11,7 +11,7 @@ vi.mock('./contexts/AuthContext', () => ({
   useAuth: () => authState.value,
 }));
 vi.mock('./components/kitchen/KitchenScreen', () => ({
-  default: () => <div data-testid="screen-pantry">PantryManager screen</div>,
+  default: () => <div data-testid="screen-kitchen">PantryManager screen</div>,
 }));
 vi.mock('./components/RecipeManager', () => ({
   default: () => <div data-testid="screen-recipes">RecipeManager screen</div>,
@@ -48,7 +48,7 @@ describe('App shell', () => {
     expect(buttons.map((b) => b.textContent)).toEqual(['Kitchen', 'Cook', 'My recipes']);
     expect(screen.getByRole('button', { name: 'Kitchen' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Cook' })).not.toHaveAttribute('aria-current');
-    expect(screen.getByTestId('screen-pantry')).toBeInTheDocument();
+    expect(screen.getByTestId('screen-kitchen')).toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe('App shell', () => {
     expect(screen.getByRole('button', { name: 'Cook' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Kitchen' })).not.toHaveAttribute('aria-current');
     expect(screen.getByTestId('screen-recipes')).toBeInTheDocument();
-    expect(screen.queryByTestId('screen-pantry')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('screen-kitchen')).not.toBeInTheDocument();
   });
 
   it('maps My recipes to its own screen', async () => {
@@ -69,7 +69,7 @@ describe('App shell', () => {
     await user.click(screen.getByRole('button', { name: 'My recipes' }));
     expect(screen.getByRole('button', { name: 'My recipes' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('screen-recipes')).toBeInTheDocument();
-    expect(screen.queryByTestId('screen-pantry')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('screen-kitchen')).not.toBeInTheDocument();
   });
 
   it('can be driven by keyboard: Tab to a nav button, Enter activates it', async () => {

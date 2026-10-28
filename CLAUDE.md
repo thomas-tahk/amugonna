@@ -67,7 +67,7 @@
 
 ## Next Session Pickup Instructions
 1. Read `docs/milestones/M1.md` for the current plan.
-2. Install: `npm ci --ignore-scripts` (repo root), then `cd server && npx prisma generate`.
+2. Install: `npm ci` (repo root; the server postinstall runs `prisma generate`).
 3. Migrate: `cd server && npx prisma migrate deploy` (needs `DATABASE_URL` and `DIRECT_URL`).
 4. Test: `npm test`. Build: `npm run build`. Lint client: `npm run lint -w client`.
 5. Run: `npm run dev`.

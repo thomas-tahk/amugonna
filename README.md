@@ -22,9 +22,8 @@ Milestone 1, "Cook from my pantry" (see [docs/milestones/M1.md](docs/milestones/
 Requires Node 22 and a PostgreSQL database.
 
 ```bash
-# 1. Install (use --ignore-scripts; a plain install is not needed)
-npm ci --ignore-scripts
-cd server && npx prisma generate
+# 1. Install (also generates the Prisma client)
+npm ci
 
 # 2. Configure the server: create server/.env yourself (never committed) with
 #    DATABASE_URL, DIRECT_URL (same URL locally), JWT_SECRET
@@ -44,11 +43,13 @@ npm run dev
 | Command | What it does |
 |---|---|
 | `npm run dev` | Client and server in watch mode |
-| `npm test` | Server tests, then client tests (Vitest). Server DB tests are skipped when `DATABASE_URL` is unset |
+| `npm test` | Server tests, then client tests (Vitest). Server DB tests use `DATABASE_URL` (point it at a test DB, not your dev DB; `TEST_DATABASE_URL` overrides it) and are skipped when neither is set |
 | `npm run build` | Builds client, then server (`prisma generate && tsc`) |
 | `npm run lint -w client` | ESLint on the client |
 
-CI (`.github/workflows/ci.yml`) runs install, `prisma generate`, `prisma migrate deploy`, test, build and lint against a Postgres 16 service.
+CI (`.github/workflows/ci.yml`) runs `npm ci`, `prisma migrate deploy`, test, build and lint against a Postgres 16 service.
+
+Existing database created with `db push` (e.g. the live Render/Neon DB)? See [server/setup-database.md](server/setup-database.md) before deploying.
 
 ## Project layout
 

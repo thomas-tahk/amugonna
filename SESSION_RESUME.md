@@ -11,8 +11,7 @@
 ## Commands
 
 ```bash
-npm ci --ignore-scripts                 # install (repo root)
-cd server && npx prisma generate        # generate the Prisma client
+npm ci                                  # install (repo root; also runs prisma generate)
 cd server && npx prisma migrate deploy  # create/upgrade tables (needs DATABASE_URL, DIRECT_URL)
 npm test                                # server then client tests
 npm run build                           # client then server

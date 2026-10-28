@@ -53,7 +53,7 @@ npx prisma generate
 
 ## Step 6: Apply Database Schema
 ```bash
-npx prisma db push
+npx prisma migrate deploy
 ```
 
 **Expected Result:** All tables created successfully
@@ -94,3 +94,14 @@ brew services restart postgresql@15
 lsof -i :5432
 ```
 Kill conflicting processes or use different port.
+
+## Existing database created with `db push` (e.g. the live Render/Neon DB)
+
+Tables already exist but Prisma has no migration history, so `prisma migrate deploy` fails with P3005. Run this once, before the next deploy:
+
+```bash
+cd server
+npx prisma migrate resolve --applied 20260101000000_init
+```
+
+After that, `npx prisma migrate deploy` works normally.

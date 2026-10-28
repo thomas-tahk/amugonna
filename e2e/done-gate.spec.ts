@@ -59,7 +59,7 @@ test('done-gate: pantry -> recipes I can cook -> open one -> cook it', async ({ 
 
   // 6. Open the first cook-now recipe.
   await cards.first().getByRole('button').click();
-  const title = page.getByRole('heading', { level: 1 });
+  const title = page.getByRole('article').getByRole('heading', { level: 1 });
   await expect(title).toBeVisible();
   const ingredients = page.getByRole('region', { name: 'Ingredients' });
   await expect(ingredients.getByText(/✓ Have|Assumed|using /).first()).toBeVisible();

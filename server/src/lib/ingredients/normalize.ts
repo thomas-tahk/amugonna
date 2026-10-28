@@ -65,6 +65,7 @@ const UNITS = new Set([
   'cartons', 'stalk', 'stalks', 'rib', 'ribs', 'fillet', 'fillets', 'knob', 'cm', 'mm', 'inch', 'inches',
   'dozen', 'block', 'blocks', 'bit', 'bits', 'lot', 'lots', 'sheet', 'sheets', 'leaf', 'leaves', 'cob', 'cobs', 'rasher', 'rashers',
 ]);
+const CAN_UNITS = new Set(['can', 'cans', 'tin', 'tins']);
 /** One-letter units are only units straight after a number ("2 c flour", never "c"). */
 const SHORT_UNITS = new Set(['c', 't', 'l', 'g']);
 
@@ -136,10 +137,12 @@ function stripLeading(tokens: string[]): Leading {
   let consumed = false; // consumed something numeric / quantity-ish already
   let hasNumber = false;
   let unit: string | undefined;
+  let canned = false;
   const n = tokens.length;
   while (i < n - 1) {
     const raw = tokens[i];
     const t = raw.replace(/\.+$/, '');
+    if (CAN_UNITS.has(t) && tokens[i + 1] === 'of') canned = true;
     if (isNumeric(t)) {
       i++;
       consumed = true;
@@ -168,7 +171,9 @@ function stripLeading(tokens: string[]): Leading {
       break;
     }
   }
-  return { tokens: tokens.slice(i), unit, hasNumber };
+  // "tin of tomatoes" is canned tomatoes, so the existing canned rules decide (forms are separate roots)
+  const rest = tokens.slice(i);
+  return { tokens: canned ? ['canned', ...rest] : rest, unit, hasNumber };
 }
 
 interface Prepared {

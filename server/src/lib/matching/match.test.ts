@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchRecipes } from './match.js';
+import { matchRecipes, mergeIngredients } from './match.js';
 import type { IndexedRecipe } from './match.js';
 
 let nextId = 1;
@@ -69,6 +69,31 @@ describe('swaps, staples, optional', () => {
     r.ingredients.push({ canonical: 'dragon fruit', name: 'Dragon Fruit', optional: false });
     const out = matchRecipes(['egg'], [r]);
     expect(out.oneAway[0].missing).toEqual([{ name: 'Dragon Fruit', canonical: 'dragon fruit' }]);
+  });
+});
+
+describe('duplicate canonicals in one recipe', () => {
+  it('count each canonical once', () => {
+    const out = matchRecipes(['egg'], [recipe('d', ['egg', 'egg', 'carrot', 'carrot'])]);
+    expect(out.oneAway[0]).toMatchObject({ ingredientCount: 2, usedCount: 1 });
+    expect(out.oneAway[0].missing).toEqual([{ name: 'Carrot', canonical: 'carrot' }]);
+  });
+  it('are required if any copy is required', () => {
+    const out = matchRecipes(['egg'], [recipe('d', ['egg', ['carrot', { optional: true }], 'carrot'])]);
+    expect(out.oneAway[0].missing).toHaveLength(1);
+    const opt = matchRecipes(['egg'], [recipe('o', ['egg', ['carrot', { optional: true }], ['carrot', { optional: true }]])]);
+    expect(opt.cookNow[0].ingredientCount).toBe(1);
+  });
+  it('mergeIngredients joins measures and keeps the first name', () => {
+    const merged = mergeIngredients([
+      { canonical: 'butter', name: 'Butter', optional: false, measure: '1 tbsp' },
+      { canonical: 'butter', name: 'Butter', optional: true, measure: '2 tbsp' },
+      { canonical: 'egg', name: 'Egg', optional: false, measure: null },
+    ]);
+    expect(merged).toEqual([
+      { canonical: 'butter', name: 'Butter', optional: false, measure: '1 tbsp + 2 tbsp' },
+      { canonical: 'egg', name: 'Egg', optional: false, measure: null },
+    ]);
   });
 });
 

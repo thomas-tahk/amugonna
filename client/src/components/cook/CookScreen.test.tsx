@@ -60,10 +60,10 @@ const recipe: CookRecipe = {
 
 const ok = (data: unknown) => ({ ok: true, json: async () => ({ success: true, message: 'ok', data }) });
 
-function mockFetch(data: Suggestions = suggestions) {
+function mockFetch(data: Suggestions = suggestions, rec: typeof recipe = recipe) {
   const fn = vi.fn(async (url: string) => {
     if (String(url).endsWith('/recipes/suggestions')) return ok(data);
-    if (String(url).endsWith('/recipes/3')) return ok({ recipe });
+    if (String(url).endsWith('/recipes/3')) return ok({ recipe: rec });
     return { ok: false, json: async () => ({ success: false, message: 'nope' }) };
   });
   vi.stubGlobal('fetch', fn);
@@ -166,6 +166,25 @@ describe('Cook view', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copy missing items' }));
     expect(writeText).toHaveBeenCalledWith('lemon\nbasil');
     expect(await screen.findByRole('button', { name: 'Copied ✓' })).toBeInTheDocument();
+  });
+
+  it('optional items that are not owned stay out of the Missing box and copy list', async () => {
+    mockFetch(suggestions, {
+      ...recipe,
+      ingredients: [
+        ...recipe.ingredients,
+        { name: 'parsley', canonical: 'parsley', measure: null, optional: true, status: 'missing' as const },
+      ],
+    });
+    await openLemon();
+    expect(screen.getByText('Missing (2)')).toBeInTheDocument();
+    const parsley = screen.getAllByRole('listitem').find((li) => li.textContent?.includes('parsley'))!;
+    expect(parsley).toHaveTextContent('(optional)');
+    expect(parsley.closest('.cook-missing')).toBeNull();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Copy missing items' }));
+    expect(writeText).toHaveBeenCalledWith('lemon\nbasil');
   });
 
   it('Back returns to results', async () => {

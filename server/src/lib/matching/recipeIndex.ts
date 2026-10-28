@@ -16,6 +16,9 @@ interface Entry {
 let publicCache: Entry | null = null;
 let publicLoad: Promise<Entry> | null = null;
 const userCache = new Map<number, Entry>();
+/** bumped by every invalidation, so a load that started before one is never cached */
+let version = 0;
+export const USER_CACHE_MAX = 1000;
 
 const select = {
   id: true,
@@ -61,6 +64,7 @@ function toIndexed(r: Row): IndexedRecipe {
 const isFresh = (e: Entry | null | undefined): e is Entry => !!e && Date.now() - e.at < INDEX_TTL_MS;
 
 export function invalidateRecipeIndex(): void {
+  version++;
   publicCache = null;
   publicLoad = null;
   userCache.clear();
@@ -91,10 +95,20 @@ async function loadPublic(): Promise<IndexedRecipe[]> {
 
 async function loadOwn(userId: number): Promise<IndexedRecipe[]> {
   const hit = userCache.get(userId);
-  if (isFresh(hit)) return hit.recipes;
+  if (isFresh(hit)) {
+    // refresh recency (Map keeps insertion order)
+    userCache.delete(userId);
+    userCache.set(userId, hit);
+    return hit.recipes;
+  }
+  userCache.delete(userId); // evict an expired entry
+  const startedAt = version;
   const rows = await prisma.recipe.findMany({ where: { createdBy: userId, isPublic: false }, select });
   const entry = { at: Date.now(), recipes: rows.map(toIndexed) };
-  userCache.set(userId, entry);
+  if (startedAt === version) {
+    userCache.set(userId, entry);
+    while (userCache.size > USER_CACHE_MAX) userCache.delete(userCache.keys().next().value as number);
+  }
   return entry.recipes;
 }
 

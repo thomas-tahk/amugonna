@@ -55,6 +55,28 @@ export function isStapleCanonical(canonical: string): boolean {
   return getEntry(canonical)?.staple === true;
 }
 
+/**
+ * Collapse rows that share a canonical (first position wins). A merged ingredient is optional only if every copy
+ * is; measures are joined with " + " (distinct, non-empty).
+ */
+export function mergeIngredients<T extends { canonical: string; optional: boolean; measure?: string | null }>(
+  list: T[]
+): T[] {
+  const byCanonical = new Map<string, T>();
+  for (const ing of list) {
+    const seen = byCanonical.get(ing.canonical);
+    if (!seen) {
+      byCanonical.set(ing.canonical, { ...ing });
+      continue;
+    }
+    seen.optional = seen.optional && ing.optional;
+    if (ing.measure && ing.measure !== seen.measure) {
+      seen.measure = seen.measure ? `${seen.measure} + ${ing.measure}` : ing.measure;
+    }
+  }
+  return [...byCanonical.values()];
+}
+
 export function matchRecipes(pantryCanonicals: string[], recipes: IndexedRecipe[]): MatchResult {
   const pantry = [...new Set(pantryCanonicals)];
   const memo = new Map<string, SatisfyResult>();
@@ -75,7 +97,7 @@ export function matchRecipes(pantryCanonicals: string[], recipes: IndexedRecipe[
     const missing: RecipeMatch['missing'] = [];
     const swaps: RecipeMatch['swaps'] = [];
 
-    for (const ing of recipe.ingredients) {
+    for (const ing of mergeIngredients(recipe.ingredients)) {
       if (ing.optional || isStapleCanonical(ing.canonical)) continue;
       ingredientCount++;
       const r = check(ing.canonical);

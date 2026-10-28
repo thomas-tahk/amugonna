@@ -3,7 +3,7 @@ import { prisma } from '../lib/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { splitSteps } from '../lib/recipes/index.js';
 import { satisfies } from '../lib/ingredients/index.js';
-import { displayName, getRecipesFor, invalidateRecipeIndex, matchRecipes } from '../lib/matching/index.js';
+import { displayName, getRecipesFor, invalidateRecipeIndex, matchRecipes, mergeIngredients } from '../lib/matching/index.js';
 
 const router = express.Router();
 
@@ -213,8 +213,8 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
-    const recipeId = parseInt(req.params.id);
-    if (!Number.isInteger(recipeId)) {
+    const recipeId = /^\d+$/.test(req.params.id) ? Number(req.params.id) : NaN;
+    if (!Number.isInteger(recipeId) || recipeId > 2147483647) {
       return res.status(404).json({ success: false, message: 'Recipe not found' });
     }
 
@@ -235,6 +235,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
           }
         },
         recipeIngredients: {
+          orderBy: { id: 'asc' },
           include: {
             ingredient: {
               select: {
@@ -266,13 +267,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
     const pantry = pantryItems.map(p => p.ingredient.canonical);
 
-    const ingredients = recipe.recipeIngredients.map(ri => {
-      const r = satisfies(pantry, ri.ingredient.canonical);
-      return {
-        name: displayName(ri.ingredient.canonical, ri.ingredient.name),
+    const ingredients = mergeIngredients(
+      recipe.recipeIngredients.map(ri => ({
         canonical: ri.ingredient.canonical,
+        name: displayName(ri.ingredient.canonical, ri.ingredient.name),
         measure: ri.measure ?? null,
-        optional: ri.optional,
+        optional: ri.optional
+      }))
+    ).map(ing => {
+      const r = satisfies(pantry, ing.canonical);
+      return {
+        ...ing,
         status: r.status,
         ...(r.status === 'swap' && r.using ? { using: displayName(r.using, r.using) } : {})
       };

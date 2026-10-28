@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "seed": "tsx prisma/seed.ts",
     "import:mealdb": "tsx scripts/import-mealdb.ts",
+    "report:matches": "tsx scripts/report-matches.ts",
     "test": "vitest run"
   },
   "prisma": {

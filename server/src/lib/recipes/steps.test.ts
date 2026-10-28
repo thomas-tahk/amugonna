@@ -63,4 +63,33 @@ describe('splitSteps', () => {
     expect(splitSteps('  \r\n \r\n')).toEqual([]);
     expect(splitSteps(null as unknown as string)).toEqual([]);
   });
+
+  it('strips punctuation-free numbering only when lines form a 1,2,3 sequence', () => {
+    expect(splitSteps('1 Preheat the oven to 200C.\n2 Mix the flour and eggs.\n3 Bake for 20 minutes.')).toEqual([
+      'Preheat the oven to 200C.',
+      'Mix the flour and eggs.',
+      'Bake for 20 minutes.',
+    ]);
+    // not a sequence -> untouched
+    expect(splitSteps('2 Eggs are beaten in a bowl.\n3 Cups of flour go in next.')).toEqual([
+      '2 Eggs are beaten in a bowl.',
+      '3 Cups of flour go in next.',
+    ]);
+    expect(splitSteps('1 Large pan is needed.\nAdd the oil.')).toEqual(['1 Large pan is needed.', 'Add the oil.']);
+  });
+
+  it('drops all-caps step headers like "STEP 1 - MAKE THE SAUCE" but keeps real steps', () => {
+    const text = 'STEP 1 - MAKE THE SAUCE\r\nChop the onion.\r\nSTEP 2: BAKE\r\nBake for 20 minutes.\r\nStep 3: Serve it up.';
+    expect(splitSteps(text)).toEqual(['Chop the onion.', 'Bake for 20 minutes.', 'Serve it up.']);
+  });
+
+  it('does not split a paragraph on common abbreviations', () => {
+    const text =
+      'Add 2 tbsp. Of oil to the pan and heat for approx. Five minutes. Stir in the spice, i.e. The curry powder, and cook for 3 min. Then add the stock. Simmer gently until thick.';
+    expect(splitSteps(text)).toEqual([
+      'Add 2 tbsp. Of oil to the pan and heat for approx. Five minutes.',
+      'Stir in the spice, i.e. The curry powder, and cook for 3 min. Then add the stock.',
+      'Simmer gently until thick.',
+    ]);
+  });
 });

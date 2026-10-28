@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { prisma } from '../src/lib/database.js';
 import { getVocabulary } from '../src/lib/ingredients/index.js';
-import { runSeed } from '../prisma/seed.js';
+import { runSeed, shouldLoadFixture } from '../prisma/seed.js';
 import { importMeals } from '../src/lib/recipes/import.js';
 import { loadMealFile } from '../src/lib/recipes/file.js';
 import { syncVocabulary, upsertRecipe } from '../src/lib/recipes/upsert.js';
@@ -49,15 +49,20 @@ describe.skipIf(!hasDb)('recipe base (needs a migrated DATABASE_URL)', () => {
     expect(await counts()).toEqual(before);
   });
 
-  it('every recipe_ingredient points at an ingredient with a canonical', async () => {
-    const orphans = await prisma.recipeIngredient.count({ where: { ingredient: { canonical: '' } } });
-    expect(orphans).toBe(0);
-    const rows: { n: bigint }[] = await prisma.$queryRaw`
-      SELECT count(*) AS n FROM recipe_ingredients ri
-      LEFT JOIN ingredients i ON i.id = ri.ingredient_id
-      WHERE i.id IS NULL OR i.canonical IS NULL OR i.canonical = ''`;
-    expect(Number(rows[0].n)).toBe(0);
-    expect(await prisma.recipeIngredient.count()).toBeGreaterThan(300);
+  it('every recipe_ingredient has an ingredient, and >= 95% link to vocabulary rows', async () => {
+    const rows: { total: bigint; orphaned: bigint; vocab: bigint }[] = await prisma.$queryRaw`
+      SELECT count(*) AS total,
+             count(*) FILTER (WHERE i.id IS NULL OR i.canonical IS NULL OR i.canonical = '') AS orphaned,
+             count(*) FILTER (WHERE i.sort_order IS NOT NULL) AS vocab
+      FROM recipe_ingredients ri
+      JOIN recipes r ON r.id = ri.recipe_id AND r.external_source IN ('amugonna-seed', 'fixture')
+      LEFT JOIN ingredients i ON i.id = ri.ingredient_id`;
+    const total = Number(rows[0].total);
+    const rate = Number(rows[0].vocab) / total;
+    console.log(`[recipe-base] vocabulary match rate: ${(rate * 100).toFixed(1)}% (${rows[0].vocab}/${total})`);
+    expect(total).toBeGreaterThan(300);
+    expect(Number(rows[0].orphaned)).toBe(0);
+    expect(rate).toBeGreaterThanOrEqual(0.95);
   });
 
   it('every public recipe has attribution, and every seeded recipe has ingredients', async () => {
@@ -137,5 +142,14 @@ describe.skipIf(!hasDb)('recipe base (needs a migrated DATABASE_URL)', () => {
     const before = await prisma.ingredient.count();
     await syncVocabulary(prisma);
     expect(await prisma.ingredient.count()).toBe(before);
+  });
+});
+
+describe('shouldLoadFixture', () => {
+  it('loads the fixture outside production, and in production only when forced', () => {
+    expect(shouldLoadFixture({ NODE_ENV: 'development' })).toBe(true);
+    expect(shouldLoadFixture({})).toBe(true);
+    expect(shouldLoadFixture({ NODE_ENV: 'production' })).toBe(false);
+    expect(shouldLoadFixture({ NODE_ENV: 'production', SEED_FIXTURE: '1' })).toBe(true);
   });
 });

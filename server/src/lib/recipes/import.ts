@@ -33,7 +33,15 @@ export async function fetchMealDbLetter(letter: string, opts: FetchOptions = {})
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const res = await fetchImpl(url, { signal: controller.signal, headers: { accept: 'application/json' } });
-      if (!res.ok) throw new Error(`TheMealDB ${url} responded ${res.status}`);
+      if (!res.ok) {
+        const err = new Error(`TheMealDB ${url} responded ${res.status}`);
+        // client errors will not fix themselves (429 = rate limited is the exception)
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+          lastError = err;
+          break;
+        }
+        throw err;
+      }
       const body = (await res.json()) as { meals?: MealDbMeal[] | null };
       return Array.isArray(body.meals) ? body.meals : [];
     } catch (err) {
@@ -67,6 +75,8 @@ export interface ImportResult {
   ingredientsCreated: number;
   /** canonical -> number of recipe lines that used it */
   unmatched: Map<string, number>;
+  /** meals that could not be saved; the import carries on past them */
+  failures: { id: string; title: string; error: string }[];
 }
 
 export async function importMeals(
@@ -76,9 +86,19 @@ export async function importMeals(
   profile: MealDbProfile = {},
   upsert: (p: PrismaClient, dto: ReturnType<typeof mapMealDbMeal>, userId: number) => Promise<UpsertRecipeResult> = upsertRecipe
 ): Promise<ImportResult> {
-  const result: ImportResult = { fetched: meals.length, created: 0, updated: 0, ingredientsCreated: 0, unmatched: new Map() };
+  const result: ImportResult = { fetched: meals.length, created: 0, updated: 0, ingredientsCreated: 0, unmatched: new Map(), failures: [] };
   for (const meal of meals) {
-    const r = await upsert(prisma, mapMealDbMeal(meal, profile), systemUserId);
+    let r: UpsertRecipeResult;
+    try {
+      r = await upsert(prisma, mapMealDbMeal(meal, profile), systemUserId);
+    } catch (err) {
+      result.failures.push({
+        id: String(meal.idMeal),
+        title: String(meal.strMeal ?? ''),
+        error: err instanceof Error ? err.message : String(err),
+      });
+      continue;
+    }
     if (r.created) result.created++;
     else result.updated++;
     result.ingredientsCreated += r.ingredientsCreated;
@@ -89,8 +109,9 @@ export async function importMeals(
 
 export function summarise(r: ImportResult, top = 40): string {
   const lines = [
-    `fetched ${r.fetched} | created ${r.created} | updated ${r.updated} | ingredients created ${r.ingredientsCreated}`,
+    `fetched ${r.fetched} | created ${r.created} | updated ${r.updated} | ingredients created ${r.ingredientsCreated} | failed ${r.failures.length}`,
   ];
+  for (const f of r.failures) lines.push(`  FAILED ${f.id} "${f.title}": ${f.error}`);
   const ranked = [...r.unmatched.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, top);
   if (ranked.length > 0) {
     lines.push(`Top ${ranked.length} unmatched ingredient names (${r.unmatched.size} distinct, not in the vocabulary):`);
@@ -99,4 +120,9 @@ export function summarise(r: ImportResult, top = 40): string {
     lines.push('No unmatched ingredient names.');
   }
   return lines.join('\n');
+}
+
+/** Non-zero only when nothing at all could be saved. */
+export function importExitCode(r: ImportResult): number {
+  return r.fetched > 0 && r.failures.length === r.fetched ? 1 : 0;
 }

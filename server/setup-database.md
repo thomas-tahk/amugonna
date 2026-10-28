@@ -58,6 +58,14 @@ npx prisma migrate deploy
 
 **Expected Result:** All tables created successfully
 
+## Step 6b: Load the recipe base
+```bash
+npm run seed            # vocabulary + 21 starter recipes (+ ~30 fixture recipes unless NODE_ENV=production; SEED_FIXTURE=1 forces them)
+npm run import:mealdb   # optional: fetch TheMealDB a..z (needs internet); `-- --file x.json` reads a file instead
+```
+
+**Expected Result:** counts of created/updated recipes; running either again changes nothing.
+
 ## Step 7: Start Server
 ```bash
 npm run dev

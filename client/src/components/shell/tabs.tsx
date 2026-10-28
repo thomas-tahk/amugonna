@@ -1,5 +1,5 @@
 import React from 'react';
-import PantryManager from '../PantryManager';
+import KitchenScreen from '../kitchen/KitchenScreen';
 import RecipeManager from '../RecipeManager';
 import CookScreen from '../cook/CookScreen';
 import { BookmarkIcon, CookIcon, KitchenIcon } from './icons';
@@ -16,7 +16,7 @@ export interface TabDef {
 
 /** The single tab -> component mapping. Kitchen is the default after sign-in. */
 export const TABS: TabDef[] = [
-  { id: 'kitchen', label: 'Kitchen', Icon: KitchenIcon, Screen: PantryManager },
+  { id: 'kitchen', label: 'Kitchen', Icon: KitchenIcon, Screen: KitchenScreen },
   { id: 'cook', label: 'Cook', Icon: CookIcon, Screen: CookScreen },
   { id: 'recipes', label: 'My recipes', Icon: BookmarkIcon, Screen: RecipeManager },
 ];

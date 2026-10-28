@@ -129,7 +129,7 @@ export const ingredientsApi = {
   addUserIngredient: async (
     ingredientData: AddIngredientData,
     token?: string
-  ): Promise<ApiResponse<{ userIngredient: any }>> => {
+  ): Promise<ApiResponse<{ userIngredient: Record<string, unknown> }>> => {
     return apiRequest('/ingredients/user', {
       method: 'POST',
       headers: getAuthHeaders(token),
@@ -141,7 +141,7 @@ export const ingredientsApi = {
     id: number,
     ingredientData: UpdateIngredientData,
     token?: string
-  ): Promise<ApiResponse<{ userIngredient: any }>> => {
+  ): Promise<ApiResponse<{ userIngredient: Record<string, unknown> }>> => {
     return apiRequest(`/ingredients/user/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(token),

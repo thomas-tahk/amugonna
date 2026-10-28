@@ -35,7 +35,7 @@ export interface Ingredient {
   name: string;
   category: string;
   commonUnits: string[];
-  nutritionalInfo?: any;
+  nutritionalInfo?: unknown;
 }
 
 export interface UserIngredient {

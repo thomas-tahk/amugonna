@@ -39,6 +39,7 @@ const RecipeManager: React.FC = () => {
     if (view.mode === 'list' && view.tab === 'my-recipes') {
       loadMyRecipes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
   const loadSuggestions = async () => {

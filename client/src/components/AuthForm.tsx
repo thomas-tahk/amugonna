@@ -56,7 +56,7 @@ const AuthForm: React.FC = () => {
           setError(result.message);
         }
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);

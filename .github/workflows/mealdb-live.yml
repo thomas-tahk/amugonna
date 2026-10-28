@@ -4,7 +4,7 @@ name: mealdb-live
 # Imported data lives only in the CI Postgres service; nothing is committed.
 on:
   push:
-    branches: [m1-cook-from-pantry, m1-live-probe]
+    branches: [m1-cook-from-pantry]
     paths:
       - 'server/**'
       - '.github/workflows/mealdb-live.yml'

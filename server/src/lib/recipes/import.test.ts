@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchMealDbLetter, fetchAllMeals, importMeals, summarise } from './import.js';
+import { fetchMealDbLetter, fetchAllMeals, importMeals, summarise, importExitCode } from './import.js';
 
 const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
@@ -34,6 +34,19 @@ describe('fetchMealDbLetter (mocked fetch)', () => {
     const f = vi.fn(() => json({}, 503));
     await expect(fetchMealDbLetter('c', { fetchImpl: f as any, retryDelayMs: 0 })).rejects.toThrow(/503/);
     expect(f).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry 4xx (except 429)', async () => {
+    const f404 = vi.fn(() => json({}, 404));
+    await expect(fetchMealDbLetter('e', { fetchImpl: f404 as any, retryDelayMs: 0 })).rejects.toThrow(/404/);
+    expect(f404).toHaveBeenCalledTimes(1);
+
+    const f429 = vi
+      .fn()
+      .mockImplementationOnce(() => json({}, 429))
+      .mockImplementationOnce(() => json({ meals: [meal('5')] }));
+    expect(await fetchMealDbLetter('e', { fetchImpl: f429 as any, retryDelayMs: 0 })).toHaveLength(1);
+    expect(f429).toHaveBeenCalledTimes(2);
   });
 
   it('times out a hung request', async () => {
@@ -84,5 +97,24 @@ describe('importMeals / summarise', () => {
     expect(res.unmatched.get('yuzu')).toBe(2);
     expect(summarise(res)).toMatch(/fetched 2.*created 1.*updated 1.*ingredients created 2/s);
     expect(summarise(res)).toContain('yuzu');
+  });
+
+  it('keeps going when one meal fails, collects the failure, and exits non-zero only if all failed', async () => {
+    const upsert = vi
+      .fn()
+      .mockResolvedValueOnce({ created: true, ingredientsCreated: 0, unmatched: [] })
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ created: true, ingredientsCreated: 0, unmatched: [] });
+    const res = await importMeals({} as any, [meal('1'), meal('2'), meal('3')] as any, 1, {}, upsert as any);
+    expect(upsert).toHaveBeenCalledTimes(3);
+    expect(res).toMatchObject({ fetched: 3, created: 2 });
+    expect(res.failures).toEqual([{ id: '2', title: 'Meal 2', error: 'boom' }]);
+    expect(summarise(res)).toMatch(/failed 1/);
+    expect(summarise(res)).toContain('Meal 2');
+    expect(importExitCode(res)).toBe(0);
+
+    const allBad = vi.fn().mockRejectedValue(new Error('down'));
+    const bad = await importMeals({} as any, [meal('1'), meal('2')] as any, 1, {}, allBad as any);
+    expect(importExitCode(bad)).toBe(1);
   });
 });

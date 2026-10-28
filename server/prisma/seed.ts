@@ -67,9 +67,19 @@ export function starterToDto(r: StaticRecipe): RecipeDto {
   };
 }
 
+/** The 30-recipe test fixture is never loaded in production unless SEED_FIXTURE=1 forces it. */
+export function shouldLoadFixture(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.SEED_FIXTURE === '1') return true;
+  return env.NODE_ENV !== 'production';
+}
+
 /** Re-runnable: everything is an upsert. */
-export async function runSeed(prisma: PrismaClient, opts: { log?: (msg: string) => void } = {}) {
+export async function runSeed(
+  prisma: PrismaClient,
+  opts: { log?: (msg: string) => void; fixture?: boolean } = {}
+) {
   const log = opts.log ?? console.log;
+  const withFixture = opts.fixture ?? shouldLoadFixture();
   log('Starting database seed...');
 
   const systemUser = await prisma.user.upsert({
@@ -115,9 +125,13 @@ export async function runSeed(prisma: PrismaClient, opts: { log?: (msg: string) 
   }
   log(`Starter recipes: ${created} created, ${updated} updated`);
 
-  const fixture = loadMealFile(FIXTURE_PATH);
-  const res = await importMeals(prisma, fixture.meals, systemUser.id, fixture.profile);
-  log(`Fixture recipes: ${res.created} created, ${res.updated} updated`);
+  if (withFixture) {
+    const fixture = loadMealFile(FIXTURE_PATH);
+    const res = await importMeals(prisma, fixture.meals, systemUser.id, fixture.profile);
+    log(`Fixture recipes: ${res.created} created, ${res.updated} updated`);
+  } else {
+    log('Fixture recipes: skipped (NODE_ENV=production; set SEED_FIXTURE=1 to force)');
+  }
 
   log('Database seed completed successfully!');
 }

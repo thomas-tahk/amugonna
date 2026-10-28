@@ -49,7 +49,7 @@ npm run dev
 | Command | What it does |
 |---|---|
 | `npm run dev` | Client and server in watch mode |
-| `npm test` | Server tests, then client tests (Vitest). Server DB tests need `TEST_DATABASE_URL` pointing at a database whose name contains "test"; they are skipped when it is not set |
+| `npm test` | Server tests, then client tests (Vitest). Server DB tests run only when `TEST_DATABASE_URL` is set; otherwise they are skipped. See below |
 | `npm run e2e` | Builds both apps, then runs Playwright at phone and desktop sizes. Needs a migrated and seeded database (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET` in the environment), `npx playwright install chromium` once, and ports 3201 and 4201 free |
 | `npm run build` | Builds client, then server (`prisma generate && tsc`) |
 | `npm run lint -w client` | ESLint on the client |
@@ -57,7 +57,24 @@ npm run dev
 | `npm run import:mealdb -w server` | Optional: TheMealDB recipes |
 | `npm run report:matches -w server` | Match numbers for reference pantries |
 
-CI (`.github/workflows/ci.yml`) runs install, `prisma migrate deploy`, test, build and lint against Postgres 16, then the e2e job.
+### Running the DB tests
+
+The DB-backed server tests never use `DATABASE_URL` (which `server/.env` may point at a real database). They run only against `TEST_DATABASE_URL`, and the config refuses to start if that database name does not contain `test`:
+
+```bash
+createdb amugonna_test
+cd server
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test \
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test \
+  npx prisma migrate deploy && npm run seed        # the seed is optional; tests seed what they need
+cd .. && TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test npm test
+```
+
+With `TEST_DATABASE_URL` unset, `npm test` still runs the pure unit tests and skips the DB suites with a warning.
+
+CI (`.github/workflows/ci.yml`) runs `npm ci`, `prisma migrate deploy`, test, build and lint against a Postgres 16 service, with `TEST_DATABASE_URL` pointing at its `amugonna_test` database. The server refuses to start when `JWT_SECRET` is unset.
+
+After that, the `e2e` job runs the Playwright done-gate tests at phone and desktop sizes.
 
 Existing database created with `db push` (e.g. the live Render/Neon DB)? Follow the ordered steps in [server/setup-database.md](server/setup-database.md) before merging to main.
 

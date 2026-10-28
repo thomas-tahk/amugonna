@@ -6,10 +6,10 @@ import { generateToken } from '../src/lib/auth.js';
 import { runSeed } from '../prisma/seed.js';
 import { parsePantryText, applyBulk, validateBulk } from '../src/lib/pantry/index.js';
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+const hasDb = process.env.TEST_DB_ENABLED === '1';
 
 if (!hasDb) {
-  console.warn('[server tests] DATABASE_URL is not set: skipping DB integration tests (pantry API).');
+  console.warn('[server tests] TEST_DATABASE_URL is not set: skipping DB integration tests (pantry API).');
 }
 
 afterAll(async () => {
@@ -29,7 +29,7 @@ const YUZU = `yuzu kosho ${tag}`;
 const SECRET = `my secret thing ${tag}`;
 const RACE = `racefruit ${tag}`;
 
-describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () => {
+describe.skipIf(!hasDb)('pantry entry API (needs a migrated TEST_DATABASE_URL)', () => {
   let auth: [string, string];
   let userId: number;
   const idOf = async (canonical: string) => (await prisma.ingredient.findUniqueOrThrow({ where: { canonical } })).id;

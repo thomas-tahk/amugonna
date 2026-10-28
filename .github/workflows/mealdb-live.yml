@@ -9,6 +9,8 @@ on:
       - 'server/**'
       - '.github/workflows/mealdb-live.yml'
   workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
 
 jobs:
   mealdb-live:
@@ -64,7 +66,17 @@ jobs:
         if: always()
         run: npm run report:matches -w server -- --json report.json
         env:
-          REPORT_TOP: ${{ github.ref_name == 'm1-live-probe' && '400' || '40' }}
+          REPORT_TOP: '40'
+
+      - name: Fail if no TheMealDB recipes were imported
+        working-directory: server
+        run: |
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('report.json', 'utf8'));
+            const n = (r.bySource.find((s) => s.source === 'TheMealDB') || {count: 0}).count;
+            console.log('TheMealDB recipes in report.json:', n);
+            if (n === 0) { console.error('Report shows 0 TheMealDB recipes: import failed'); process.exit(1); }
+          "
 
       - name: Upload report
         if: always()

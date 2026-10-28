@@ -139,37 +139,6 @@ export interface RecipesResponse {
   };
 }
 
-// Suggestion types
-export interface RecipeSuggestion {
-  id: number;
-  title: string;
-  description?: string;
-  prepTime?: number;
-  cookTime?: number;
-  servings: number;
-  difficulty?: string;
-  cuisineTypes: string[];
-  tags: string[];
-  dietaryTags: string[];
-  allergens: string[];
-  images: string[];
-  isFavorite: boolean;
-  matchScore: number;
-  matchedIngredients: number;
-  totalIngredients: number;
-  missingIngredients: { id: number; name: string; category: string }[];
-  hasOptionalIngredients: boolean;
-}
-
-export interface SuggestionsResponse {
-  pantrySize: number;
-  suggestions: {
-    canMakeNow: RecipeSuggestion[];
-    almostThere: RecipeSuggestion[];
-    aspirational: RecipeSuggestion[];
-  };
-}
-
 // Recipe form types
 export interface RecipeIngredientInput {
   ingredientId: number;

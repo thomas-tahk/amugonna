@@ -8,12 +8,12 @@ import { canonicalize } from '../src/lib/ingredients/index.js';
 // type-only import of the contract the client consumes (erased at runtime)
 import type { CookRecipe, RecipeMatch, Suggestions } from '../../client/src/types/cook.js';
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+const hasDb = process.env.TEST_DB_ENABLED === '1';
 
 if (!hasDb) {
   console.warn(
-    '[server tests] DATABASE_URL is not set: skipping DB integration tests (matching). ' +
-      'Set DATABASE_URL (and run `npx prisma migrate deploy`) to run them.'
+    '[server tests] TEST_DATABASE_URL is not set: skipping DB integration tests (matching). ' +
+      'Set TEST_DATABASE_URL (a database whose name contains "test"; run `npx prisma migrate deploy`) to run them.'
   );
 }
 
@@ -41,7 +41,7 @@ function expectMatchShape(m: RecipeMatch) {
   for (const x of m.swaps) expect(Object.keys(x).sort()).toEqual(['need', 'using']);
 }
 
-describe.skipIf(!hasDb)('matching API (needs a migrated DATABASE_URL)', () => {
+describe.skipIf(!hasDb)('matching API (needs a migrated TEST_DATABASE_URL)', () => {
   let token: string;
   let userId: number;
   const auth = () => ({ Authorization: `Bearer ${token}` });

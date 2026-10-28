@@ -9,5 +9,6 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     exclude: ['node_modules', 'dist', 'e2e/**'],
+    fileParallelism: false, // DB integration tests share one database
   },
 });

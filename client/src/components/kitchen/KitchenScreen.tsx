@@ -165,7 +165,7 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
     else say(`${item.name} is already in your kitchen`);
   };
 
-  const addTexts = (texts: string[]) =>
+  const addTexts = (texts: (number | string)[]) =>
     enqueue(async () => {
       const res = await kitchenApi.bulk({ add: texts });
       setServerList(toHave(res.ingredients));

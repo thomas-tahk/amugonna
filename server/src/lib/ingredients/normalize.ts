@@ -361,7 +361,7 @@ export function canonicalize(raw: string): string {
 // ---------------------------------------------------------------------------
 
 /** Damerau-Levenshtein (optimal string alignment). */
-function editDistance(a: string, b: string): number {
+export function editDistance(a: string, b: string): number {
   const al = a.length;
   const bl = b.length;
   if (al === 0) return bl;

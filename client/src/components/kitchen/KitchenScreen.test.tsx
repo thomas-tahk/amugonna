@@ -177,7 +177,7 @@ describe('KitchenScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add 2' }));
     await waitFor(() => expect(bulkCalls()).toHaveLength(1));
-    expect(bulkCalls()[0].body).toEqual({ add: ['eggs', 'scalions'] });
+    expect(bulkCalls()[0].body).toEqual({ add: [4, 'scalions'] });
     expect(await screen.findByRole('heading', { name: 'In your kitchen (2)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove scalions from your kitchen' })).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Items to add' })).not.toBeInTheDocument();
@@ -190,7 +190,7 @@ describe('KitchenScreen', () => {
     await user.click(await screen.findByRole('button', { name: 'Remove Scalions' }));
     await user.click(screen.getByRole('button', { name: 'Add 1' }));
     await waitFor(() => expect(bulkCalls()).toHaveLength(1));
-    expect(bulkCalls()[0].body).toEqual({ add: ['eggs'] });
+    expect(bulkCalls()[0].body).toEqual({ add: [4] });
   });
 
   it('type-ahead: arrow keys + Enter pick a suggestion by id', async () => {
@@ -278,7 +278,7 @@ describe('KitchenScreen', () => {
     expect(waiting).toHaveLength(1);
     waiting.shift()!.release();
     await waitFor(() => expect(waiting).toHaveLength(1));
-    expect(waiting[0].body).toEqual({ add: ['eggs', 'scalions'] });
+    expect(waiting[0].body).toEqual({ add: [4, 'scalions'] });
     waiting.shift()!.release();
     expect(await screen.findByRole('heading', { name: 'In your kitchen (3)' })).toBeInTheDocument();
   });

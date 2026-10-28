@@ -44,7 +44,7 @@ async function build(db: PrismaClient): Promise<Report> {
     SELECT i.name AS name, COUNT(*) AS count
     FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
     WHERE i.sort_order IS NULL
-    GROUP BY i.name ORDER BY count DESC, i.name ASC LIMIT 40`;
+    GROUP BY i.name ORDER BY count DESC, i.name ASC LIMIT ${Number(process.env.REPORT_TOP ?? 40)}`;
 
   const recipes = await getRecipesFor(0); // public recipes only (there is no user 0)
   const defs: [string, string[]][] = [

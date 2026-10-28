@@ -63,6 +63,8 @@ jobs:
       - name: Match report
         if: always()
         run: npm run report:matches -w server -- --json report.json
+        env:
+          REPORT_TOP: ${{ github.ref_name == 'm1-live-probe' && '400' || '40' }}
 
       - name: Upload report
         if: always()

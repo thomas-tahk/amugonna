@@ -4,7 +4,7 @@ name: mealdb-live
 # Imported data lives only in the CI Postgres service; nothing is committed.
 on:
   push:
-    branches: [m1-cook-from-pantry]
+    branches: [m1-cook-from-pantry, m1-live-probe]
     paths:
       - 'server/**'
       - '.github/workflows/mealdb-live.yml'
@@ -49,9 +49,11 @@ jobs:
         run: npx prisma migrate deploy
         working-directory: server
 
-      # seed.ts has no switch to skip the fixture, so the default seed runs (vocabulary, starters, fixture).
+      # Production seed: vocabulary + starter recipes only (the 30-recipe test fixture is skipped).
       - name: Seed
         run: npm run seed -w server
+        env:
+          NODE_ENV: production
 
       - name: Import TheMealDB
         run: npm run import:mealdb -w server

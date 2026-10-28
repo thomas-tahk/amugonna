@@ -27,7 +27,7 @@ const HARD = new Set([
   'seeded', 'trimmed', 'halved', 'quartered', 'cubed', 'cut', 'large', 'small', 'medium', 'big', 'jumbo',
   'organic', 'free', 'range', 'boneless', 'skinless', 'ripe', 'finely', 'roughly', 'coarsely', 'thinly',
   'thickly', 'lightly', 'good', 'quality', 'packed', 'heaped', 'level', 'rounded', 'softened', 'melted',
-  'optional', 'approx', 'approximately', 'about', 'sifted', 'rinsed', 'drained', 'washed', 'torn', 'crumbled',
+  'overripe', 'optional', 'approx', 'approximately', 'about', 'sifted', 'rinsed', 'drained', 'washed', 'torn', 'crumbled',
 ]);
 
 /**
@@ -39,6 +39,9 @@ const SOFT = new Set([
   'raw', 'crushed', 'whole', 'plain', 'unsalted', 'salted', 'sweetened', 'unsweetened', 'lean',
   'extra', 'virgin', 'pure', 'natural', 'light', 'dark', 'baby', 'young', 'pitted', 'shelled', 'skimmed',
   'skim', 'semi', 'tin', 'can', 'jar', 'bottle', 'pack', 'packet', 'of', 'boiled', 'warm', 'cold',
+  // state / provenance words ("leftover rice", "stale bread", "homemade stock"): dropped only when
+  // the rest is a known item, so "leftover yuzu" stays as typed
+  'leftover', 'stale', 'old', 'homemade',
 ]);
 
 const NUMBER_WORDS = new Set([
@@ -60,7 +63,7 @@ const UNITS = new Set([
   'head', 'heads', 'clove', 'cloves', 'can', 'cans', 'tin', 'tins', 'jar', 'jars', 'bottle', 'bottles',
   'packet', 'packets', 'package', 'packages', 'pack', 'packs', 'bag', 'bags', 'box', 'boxes', 'carton',
   'cartons', 'stalk', 'stalks', 'rib', 'ribs', 'fillet', 'fillets', 'knob', 'cm', 'mm', 'inch', 'inches',
-  'dozen', 'sheet', 'sheets', 'leaf', 'leaves', 'cob', 'cobs', 'rasher', 'rashers',
+  'dozen', 'block', 'blocks', 'bit', 'bits', 'lot', 'lots', 'sheet', 'sheets', 'leaf', 'leaves', 'cob', 'cobs', 'rasher', 'rashers',
 ]);
 /** One-letter units are only units straight after a number ("2 c flour", never "c"). */
 const SHORT_UNITS = new Set(['c', 't', 'l', 'g']);
@@ -147,6 +150,13 @@ function stripLeading(tokens: string[]): Leading {
       i++;
       consumed = true;
       if (t !== 'a' && t !== 'an' && t !== 'some' && t !== 'few' && t !== 'several' && t !== 'couple') hasNumber = true;
+    } else if (!consumed && UNITS.has(t) && !SHORT_UNITS.has(t) && tokens[i + 1] === 'of') {
+      // "bag of spinach", "bunch of coriander": a container/measure word straight before "of"
+      unit = t;
+      i++;
+      consumed = true;
+    } else if (consumed && t === 'little' && tokens[i + 1] !== 'gem') {
+      i++; // "a little milk" (but not "a little gem lettuce")
     } else if (consumed && (t === 'of' || t === 'or' || t === 'to')) {
       i++;
     } else if (consumed && MEASURE_ADJ.has(t) && i + 1 < n && (UNITS.has(tokens[i + 1].replace(/\.+$/, '')) || tokens[i + 1] === 'of')) {
@@ -192,6 +202,8 @@ function preprocess(raw: string): Prepared {
   }
   s = lead.tokens.join(' ');
   s = s.replace(/\b(?:low|reduced|non|full|zero)[\s-]fat\b|\bfat[\s-]free\b/g, ' ');
+  s = s.replace(/\b(?:low|reduced|lower|less|no)[\s-](?:sodium|salt)\b|\bsalt[\s-]reduced\b/g, ' ');
+  s = s.replace(/\bday[\s-]old\b/g, ' stale ');
   s = s.replace(/\b(?:bone|skin)[\s-](?:in|on)\b/g, ' ');
   s = s.replace(/[^a-z\s]/g, ' ');
   const words = s.split(/\s+/).filter(Boolean);

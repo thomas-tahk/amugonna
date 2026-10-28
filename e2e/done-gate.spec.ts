@@ -98,8 +98,10 @@ test('done-gate: pantry -> recipes I can cook -> open one -> cook it', async ({ 
     expect(clip.trim().length).toBeGreaterThan(0);
   }
 
-  // 10. Reload: still signed in, Kitchen still has the items.
+  // 10. Reload: still signed in, still on the open recipe (URL hash), and Kitchen still has the items.
   await page.reload();
+  await expect(page.getByRole('article').getByRole('heading', { level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Kitchen', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your kitchen', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: `In your kitchen (${picks.length + 2})` })).toBeVisible();
   for (const name of picks) {

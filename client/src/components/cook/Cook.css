@@ -52,7 +52,11 @@
 .cook-view-media.cook-card-placeholder {
   /* .cook-view-media sets display:block; without this the letter sits top-left */
   display: flex; align-items: center; justify-content: center;
-  font-size: 4rem; height: auto;
+  /* no photo: a slim band, so ingredients and steps stay near the top */
+  font-size: var(--text-2xl); height: 64px; aspect-ratio: auto;
+}
+@media (max-width: 599px) {
+  .cook-view-media { max-height: 33vh; }
 }
 .cook-view-meta { color: var(--color-ink-muted); font-size: var(--text-lg); margin-bottom: var(--space-4); }
 .cook-view-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-5); }

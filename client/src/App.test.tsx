@@ -34,6 +34,7 @@ const signedIn = {
 
 describe('App shell', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     authState.value = { ...signedIn };
   });
 

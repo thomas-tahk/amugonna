@@ -4,6 +4,7 @@ import { pantrySync } from '../../services/pantrySync';
 import type { UserIngredient } from '../../types';
 import type { CommonData, SuggestItem } from '../../types/kitchen';
 import type { TabId } from '../shell/tabs';
+import { focusHeading } from '../shell/focus';
 import AddBox from './AddBox';
 import './Kitchen.css';
 
@@ -34,6 +35,8 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   const [count, setCount] = useState<{ status: 'stale' | 'loading' | 'ready' | 'error'; n: number }>({ status: 'stale', n: 0 });
   const [writing, setWriting] = useState(0); // saves queued or in flight
   const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false); // the add box's confirm panel is open
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   // Taps not yet confirmed by the server (queued or in flight): ingredient id -> wanted state.
   const [pending, setPendingState] = useState<Pending>(new Map());
@@ -115,7 +118,11 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
       return true;
     } catch (e) {
       settle(); // revert the optimistic change
-      if (alive.current) setActionError(`Couldn't save that change. ${e instanceof Error ? e.message : ''}`.trim());
+      if (alive.current) {
+        const names = [...new Set([...snapshot.values()].map((p) => p.name))].join(', ');
+        setActionError(`Couldn't save that change. ${e instanceof Error ? e.message : ''}`.trim());
+        say(`Couldn't save ${names}. Your kitchen was not changed.`);
+      }
       return false;
     }
   };
@@ -181,6 +188,11 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   ];
   const haveIds = new Set(have.map((h) => h.id));
 
+  // Once the kitchen has loaded, put focus on the screen heading (sign-up and tab switches land here).
+  useEffect(() => {
+    if (!loading) focusHeading(titleRef.current);
+  }, [loading]);
+
   const toggle = (id: number, name: string, want: boolean) => {
     const next: Pending = new Map(pendingRef.current);
     next.set(id, { want, name });
@@ -245,15 +257,18 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="kitchen">
-      <h2 className="kitchen-title">Your kitchen</h2>
+    <div className="kitchen" data-confirming={confirming}>
+      <h2 className="kitchen-title" ref={titleRef} tabIndex={-1}>Your kitchen</h2>
 
-      <AddBox onPick={pickSuggestion} onAddTexts={addTexts} onTextChange={setFilter} />
+      <AddBox onPick={pickSuggestion} onAddTexts={addTexts} onTextChange={setFilter} onConfirmChange={setConfirming} />
 
       {actionError && (
-        <p role="alert" className="kitchen-error">
-          {actionError}
-        </p>
+        <div role="alert" className="kitchen-toast">
+          <span>{actionError}</span>
+          <button type="button" className="btn btn-secondary kitchen-toast-close" onClick={() => setActionError(null)}>
+            Dismiss
+          </button>
+        </div>
       )}
       <p className="visually-hidden" role="status" aria-live="polite">
         {notice.text}

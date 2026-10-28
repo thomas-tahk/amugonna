@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
 import userEvent from '@testing-library/user-event';
 import CookScreen from './CookScreen';
 import type { CookRecipe, RecipeMatch, Suggestions } from '../../types/cook';
@@ -71,7 +72,7 @@ function mockFetch(data: Suggestions = suggestions, rec: typeof recipe = recipe)
 }
 
 beforeEach(() => {
-  window.history.replaceState(null, '');
+  window.history.replaceState(null, '', '#cook');
   localStorage.setItem('authToken', 'tok');
 });
 afterEach(() => {
@@ -117,7 +118,7 @@ describe('CookScreen results', () => {
   it('shows an error with retry', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('offline')));
     render(<CookScreen />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('offline');
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach Amugonna");
     const fn = mockFetch();
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Cook now (2)')).toBeInTheDocument();
@@ -275,5 +276,47 @@ describe('Cook view', () => {
   it('works without wake lock support', async () => {
     mockFetch();
     await expect(openLemon()).resolves.toBeInTheDocument();
+  });
+
+  it('puts the recipe in the URL hash and focuses its title; Back restores the results heading focus', async () => {
+    mockFetch();
+    const title = await openLemon();
+    expect(window.location.hash).toBe('#cook/recipe/3');
+    await waitFor(() => expect(title).toHaveFocus());
+    await userEvent.click(screen.getByRole('button', { name: /Back/ }));
+    const heading = await screen.findByRole('heading', { name: 'Cook now (2)' });
+    expect(window.location.hash).toBe('#cook');
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('opens the recipe straight from a #cook/recipe/<id> URL (reload) and Back still lands on results', async () => {
+    mockFetch();
+    window.history.replaceState(null, '', '#cook/recipe/3');
+    render(<CookScreen />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Lemon Chicken' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Back/ }));
+    expect(await screen.findByRole('heading', { name: 'Cook now (2)' })).toBeInTheDocument();
+    expect(window.location.hash).toBe('#cook');
+  });
+
+  it('shows a slim band, not a big block, when there is no image', async () => {
+    mockFetch();
+    await openLemon();
+    const band = document.querySelector('.cook-view-media');
+    expect(band?.tagName).toBe('DIV');
+    expect(band).toHaveClass('cook-card-placeholder');
+  });
+});
+
+describe('Cook view styles', () => {
+  const css = readFileSync('src/components/cook/Cook.css', 'utf8');
+  it('the empty-image band is slim and photos are capped on phones', () => {
+    expect(css).toMatch(/\.cook-view-media\.cook-card-placeholder\s*\{[^}]*height:\s*64px/);
+    expect(css).toMatch(/max-width:\s*599px\)\s*\{\s*\.cook-view-media\s*\{\s*max-height:\s*33vh/);
+  });
+  it('cards keep a visible focus ring that the .card shadow does not override', () => {
+    const base = readFileSync('src/styles/base.css', 'utf8');
+    expect(base.indexOf('.card:focus-visible')).toBeGreaterThan(base.indexOf('\n.card {'));
+    expect(base).toMatch(/\.card:focus-visible\s*\{[^}]*var\(--focus-ring\)/);
   });
 });

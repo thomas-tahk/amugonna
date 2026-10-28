@@ -3,6 +3,8 @@ import { cookApi } from '../../services/cookApi';
 import { pantrySync } from '../../services/pantrySync';
 import type { RecipeMatch, Suggestions } from '../../types/cook';
 import type { TabId } from '../shell/tabs';
+import { focusHeading } from '../shell/focus';
+import { navigate, recipeHash, replaceRoute, tabHash, useRoute } from '../shell/route';
 import RecipeView from './RecipeView';
 import './Cook.css';
 
@@ -63,9 +65,10 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
   const [data, setData] = useState<Suggestions | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openId, setOpenId] = useState<number | null>(
-    () => (window.history.state?.cookRecipe as number | undefined) ?? null,
-  );
+  // The open recipe lives in the URL (#cook/recipe/<id>), so reload, Back and Forward all just work.
+  const openId = useRoute().recipeId;
+  // True when we pushed the recipe entry ourselves, so on-screen Back can pop it instead of leaving the app.
+  const pushed = useRef(false);
   const [showTwo, setShowTwo] = useState(false);
 
   const latest = useRef(0);
@@ -101,8 +104,8 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
 
   const open = useCallback((id: number) => {
     savedScroll.current = window.scrollY;
-    window.history.pushState({ cookRecipe: id }, '');
-    setOpenId(id);
+    pushed.current = true;
+    navigate(recipeHash(id));
     window.scrollTo(0, 0);
   }, []);
 
@@ -114,14 +117,20 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
     }
   }, [openId]);
 
-  useEffect(() => {
-    const onPop = (e: PopStateEvent) => setOpenId(e.state?.cookRecipe ?? null);
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+  // The on-screen Back goes through history so it stays in sync with the phone back button.
+  // After a reload on a recipe URL there is no in-app entry to go back to, so go to the results directly.
+  const close = useCallback(() => {
+    if (pushed.current) {
+      pushed.current = false;
+      window.history.back();
+    } else replaceRoute(tabHash('cook'));
   }, []);
 
-  // The on-screen Back goes through history so it stays in sync with the phone back button.
-  const close = useCallback(() => window.history.back(), []);
+  // Focus: the first heading of the results once they show (and again on Back from a recipe).
+  useEffect(() => {
+    if (openId !== null || loading) return;
+    focusHeading(document.querySelector<HTMLElement>('.cook h2'), { preventScroll: true });
+  }, [openId, loading]);
 
   if (openId !== null) return <RecipeView recipeId={openId} onBack={close} />;
 

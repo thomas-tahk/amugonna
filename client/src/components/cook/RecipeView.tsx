@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { cookApi } from '../../services/cookApi';
 import type { CookIngredient, CookRecipe } from '../../types/cook';
+import { focusHeading } from '../shell/focus';
 import './Cook.css';
 
 interface Props {
@@ -45,6 +46,7 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   const [attempt, setAttempt] = useState(0);
   const [done, setDone] = useState<Set<number>>(new Set());
   const [copyLabel, setCopyLabel] = useState<string | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +60,11 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
       cancelled = true;
     };
   }, [recipeId, attempt]);
+
+  // Opening a recipe moves focus to its title (the card that was tapped is gone).
+  useEffect(() => {
+    if (recipe) focusHeading(titleRef.current);
+  }, [recipe]);
 
   // Keep the screen awake while cooking; silently skip when unsupported.
   // Browsers drop the lock when the tab is hidden, so re-acquire on return.
@@ -169,7 +176,7 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   return (
     <article className="cook cook-view">
       {back}
-      <h1 className="cook-view-title">{recipe.title}</h1>
+      <h1 className="cook-view-title" ref={titleRef} tabIndex={-1}>{recipe.title}</h1>
       {recipe.imageUrl ? (
         <img className="cook-view-media" src={recipe.imageUrl} alt="" />
       ) : (

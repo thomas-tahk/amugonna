@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './AuthForm.css';
 
 const AuthForm: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, sessionMessage } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +90,11 @@ const AuthForm: React.FC = () => {
           }
         </p>
 
+        {sessionMessage && !error && (
+          <div className="message error" role="status">
+            {sessionMessage}
+          </div>
+        )}
         {error && <div className="message error" role="alert">{error}</div>}
         {success && <div className="message success">{success}</div>}
 

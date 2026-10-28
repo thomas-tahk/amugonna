@@ -372,4 +372,67 @@ describe('KitchenScreen', () => {
     expect(calls.find((c) => c.url.includes('/user/parse'))!.body).toEqual({ text: 'butter, eggs' });
     expect(bulkCalls()).toHaveLength(0);
   });
+
+  it('a failed save shows a toast, says so in the live region, and never says Added after the failure', async () => {
+    bulkImpl = () => ({ success: false, message: 'Server is down' });
+    const user = userEvent.setup();
+    const { container } = render(<KitchenScreen />);
+    await user.click(await screen.findByRole('button', { name: 'Onion' }));
+    const toast = await screen.findByRole('alert');
+    expect(toast).toHaveClass('kitchen-toast');
+    expect(within(toast).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    await waitFor(() => expect(container.querySelector('[role=status]')?.textContent).toMatch(/Couldn't save Onion/));
+    expect(container.querySelector('[role=status]')?.textContent).not.toMatch(/^Added/);
+    await user.click(within(toast).getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('a network failure on save uses plain language', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const onion = await screen.findByRole('button', { name: 'Onion' });
+    const real = fetch as unknown as ReturnType<typeof vi.fn>;
+    vi.stubGlobal('fetch', vi.fn(async (u: string, i?: RequestInit) => (String(u).includes('/user/bulk') ? Promise.reject(new TypeError('Failed to fetch')) : real(u, i))));
+    await user.click(onion);
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach Amugonna. Check your connection and try again.");
+  });
+
+  it('focus: heading after load, confirm heading after Check, the input after Add; the sticky CTA hides while confirming', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<KitchenScreen />);
+    await screen.findByRole('heading', { name: 'Produce' });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Your kitchen' })).toHaveFocus());
+    const input = screen.getByRole('combobox', { name: /add ingredients/i });
+    await user.type(input, 'eggs, scalions');
+    await user.click(screen.getByRole('button', { name: 'Check' }));
+    const heading = await screen.findByRole('heading', { name: /Here is what we found/ });
+    expect(heading).toHaveFocus();
+    expect(container.querySelector('.kitchen')).toHaveAttribute('data-confirming', 'true');
+    await user.click(screen.getByRole('button', { name: 'Add 2' }));
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(container.querySelector('.kitchen')).toHaveAttribute('data-confirming', 'false');
+  });
+
+  it('Cancel returns focus to the input', async () => {
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const input = await screen.findByRole('combobox', { name: /add ingredients/i });
+    await user.type(input, 'eggs');
+    await user.click(screen.getByRole('button', { name: 'Check' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(input).toHaveFocus();
+  });
+
+  it('a 400 on add says to try a shorter name', async () => {
+    const real = fetch as unknown as ReturnType<typeof vi.fn>;
+    const user = userEvent.setup();
+    render(<KitchenScreen />);
+    const input = await screen.findByRole('combobox', { name: /add ingredients/i });
+    await user.type(input, 'eggs');
+    await user.click(screen.getByRole('button', { name: 'Check' }));
+    vi.stubGlobal('fetch', vi.fn(async (u: string, i?: RequestInit) =>
+      String(u).includes('/user/bulk') ? { status: 400, json: async () => ({ success: false, message: 'Validation failed' }) } : real(u, i)));
+    await user.click(await screen.findByRole('button', { name: /^Add \d/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't add that. Try a shorter name.");
+  });
 });

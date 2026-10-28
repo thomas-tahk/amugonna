@@ -1,12 +1,18 @@
 import type { ApiResponse, UserIngredient } from '../types';
+import { ADD_FAILED_MESSAGE, GENERIC_MESSAGE, NETWORK_MESSAGE, READ_FAILED_MESSAGE, notifyUnauthorized, plainServerMessage } from './http';
 import type { BulkResult, CommonData, ParsedItem, SuggestItem } from '../types/kitchen';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
 /** Calls the API and returns `data`; throws an Error with a readable message on any failure. */
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  badRequestMessage?: string,
+): Promise<T> {
   const token = localStorage.getItem('authToken');
   let body: ApiResponse<T>;
+  let status: number | undefined;
   try {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
@@ -15,12 +21,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
+    status = res.status;
     body = await res.json();
   } catch {
-    throw new Error('Network error. Check your connection and try again.');
+    throw new Error(NETWORK_MESSAGE);
   }
+  if (status === 401 && token) notifyUnauthorized();
   if (!body.success || body.data === undefined) {
-    throw new Error(body.message || 'Something went wrong. Please try again.');
+    if (status === 400 && badRequestMessage) throw new Error(badRequestMessage);
+    throw new Error(plainServerMessage(status, body.message) || GENERIC_MESSAGE);
   }
   return body.data;
 }
@@ -39,7 +48,7 @@ export const kitchenApi = {
       await request<{ items: ParsedItem[] }>('/ingredients/user/parse', {
         method: 'POST',
         body: JSON.stringify({ text }),
-      })
+      }, READ_FAILED_MESSAGE)
     ).items,
 
   /** Number of recipes cookable right now (GET /recipes/suggestions -> data.cookNow). */
@@ -48,9 +57,13 @@ export const kitchenApi = {
 
   /** `keepalive` lets the request outlive the page (used when the tab is being closed or reloaded). */
   bulk: (change: { add?: (number | string)[]; remove?: number[] }, opts: { keepalive?: boolean } = {}) =>
-    request<BulkResult>('/ingredients/user/bulk', {
-      method: 'POST',
-      body: JSON.stringify(change),
-      ...(opts.keepalive && { keepalive: true }),
-    }),
+    request<BulkResult>(
+      '/ingredients/user/bulk',
+      {
+        method: 'POST',
+        body: JSON.stringify(change),
+        ...(opts.keepalive && { keepalive: true }),
+      },
+      ADD_FAILED_MESSAGE,
+    ),
 };

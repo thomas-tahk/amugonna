@@ -8,6 +8,8 @@ export interface Resolved {
   canonical: string;
   known: boolean;
   entry?: VocabEntry;
+  /** the entry's parent family, if any (same as entry?.parent) */
+  parent?: string;
 }
 export type SatisfyStatus = 'have' | 'swap' | 'missing' | 'staple';
 export interface SatisfyResult {
@@ -34,7 +36,7 @@ const HARD = new Set([
  */
 const SOFT = new Set([
   'canned', 'tinned', 'jarred', 'bottled', 'dried', 'dry', 'frozen', 'smoked', 'cooked', 'toasted', 'roasted',
-  'raw', 'crushed', 'ground', 'whole', 'plain', 'unsalted', 'salted', 'sweetened', 'unsweetened', 'lean',
+  'raw', 'crushed', 'whole', 'plain', 'unsalted', 'salted', 'sweetened', 'unsweetened', 'lean',
   'extra', 'virgin', 'pure', 'natural', 'light', 'dark', 'baby', 'young', 'pitted', 'shelled', 'skimmed',
   'skim', 'semi', 'tin', 'can', 'jar', 'bottle', 'pack', 'packet', 'of', 'boiled', 'warm', 'cold',
 ]);
@@ -64,7 +66,13 @@ const UNITS = new Set([
 const SHORT_UNITS = new Set(['c', 't', 'l', 'g']);
 
 /** Everything from these words onward is not part of the ingredient name. */
-const CUT_WORDS = new Set(['for', 'to', 'plus', 'in', 'as', 'if', 'such', 'or', 'with', 'from', 'per']);
+const CUT_WORDS = new Set(['for', 'to', 'plus', 'in', 'as', 'if', 'such', 'with', 'from', 'per']);
+
+/** Units that mean "a spice-sized amount": "1/2 tsp pepper" is black pepper, "2 peppers" is not. */
+const SPICE_UNITS = new Set([
+  'tsp', 'teaspoon', 'teaspoons', 'tbsp', 'tbs', 'tbl', 'tablespoon', 'tablespoons', 'pinch', 'pinches', 'dash',
+  'dashes', 'g', 'gr', 'gram', 'grams', 'gramme', 'grammes', 'mg', 't',
+]);
 
 // ---------------------------------------------------------------------------
 // Singularising
@@ -86,7 +94,7 @@ const SING_IRREGULAR: Record<string, string> = {
 const SING_KEEP = new Set([
   'hummus', 'couscous', 'asparagus', 'molasses', 'swiss', 'citrus', 'watercress', 'cress', 'lemongrass', 'bass',
   'grits', 'series', 'species', 'plus', 'this', 'less', 'hass', 'cos', 'tahini', 'pitta',
-  'houmous', 'harissa', 'ras', 'bonus', 'octopus', 'asparagus', 'swiss', 'gas', 'pasta', 'molasses',
+  'houmous', 'harissa', 'ras', 'bonus', 'octopus', 'gas', 'pasta',
 ]);
 
 function singularize(w: string): string {
@@ -112,10 +120,19 @@ function stripAccents(s: string): string {
 
 const isNumeric = (t: string): boolean => /\d/.test(t) && /^[\d.,/\-–]+$/.test(t);
 
+interface Leading {
+  tokens: string[];
+  /** last unit word consumed ("tsp", "cloves"), if any */
+  unit?: string;
+  hasNumber: boolean;
+}
+
 /** Drop leading quantities, units and filler ("2 1/2 cups", "a pinch of", "1 x 400g tin of"). */
-function stripLeading(tokens: string[]): string[] {
+function stripLeading(tokens: string[]): Leading {
   let i = 0;
   let consumed = false; // consumed something numeric / quantity-ish already
+  let hasNumber = false;
+  let unit: string | undefined;
   const n = tokens.length;
   while (i < n - 1) {
     const raw = tokens[i];
@@ -123,27 +140,37 @@ function stripLeading(tokens: string[]): string[] {
     if (isNumeric(t)) {
       i++;
       consumed = true;
+      hasNumber = true;
     } else if (VAGUE_LEADERS.has(t)) {
       i++;
-    } else if (NUMBER_WORDS.has(t)) {
+    } else if (NUMBER_WORDS.has(t) && !(t === 'half' && tokens[i + 1] === 'and')) {
       i++;
       consumed = true;
-    } else if (consumed && t === 'of') {
+      if (t !== 'a' && t !== 'an' && t !== 'some' && t !== 'few' && t !== 'several' && t !== 'couple') hasNumber = true;
+    } else if (consumed && (t === 'of' || t === 'or' || t === 'to')) {
       i++;
     } else if (consumed && MEASURE_ADJ.has(t) && i + 1 < n && (UNITS.has(tokens[i + 1].replace(/\.+$/, '')) || tokens[i + 1] === 'of')) {
       i++;
     } else if (consumed && UNITS.has(t) && !(SHORT_UNITS.has(t) && !isNumeric(tokens[i - 1] ?? ''))) {
+      unit = t;
       i++;
     } else {
       break;
     }
   }
-  return tokens.slice(i);
+  return { tokens: tokens.slice(i), unit, hasNumber };
 }
 
-function preprocess(raw: string): string[] {
+interface Prepared {
+  tokens: string[];
+  unit?: string;
+  hasNumber: boolean;
+  pluralPepper: boolean;
+}
+
+function preprocess(raw: string): Prepared {
   let s = stripAccents(raw).toLowerCase();
-  s = s.replace(/[¼½¾⅐-⅞]/g, ' 1/2 ');
+  s = s.replace(/[\u00bc\u00bd\u00be\u2150-\u215e]/g, ' 1/2 ');
   s = s.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ');
   // "2 boneless, skinless chicken breasts": a comma after a plain descriptor is not a suffix cut
   s = s.replace(/\b(boneless|skinless|large|small|medium|fresh|ripe|organic|dried|frozen|canned|tinned)\s*,/g, '$1 ');
@@ -151,21 +178,30 @@ function preprocess(raw: string): string[] {
   if (comma >= 0) {
     s = /[a-z]/.test(s.slice(0, comma)) ? s.slice(0, comma) : s.replace(/,/g, ' ');
   }
-  s = s.replace(/&/g, ' and ').replace(/['’`]/g, '');
+  s = s.replace(/&/g, ' and ').replace(/['\u2019`]/g, '');
   s = s.replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2');
+  const pluralPepper = /\bpeppers\b/.test(s);
   // "juice of 2 lemons" -> "lemons juice"
   const jz = /^\s*(juice|zest|rind)\s+of\s+(.*)$/.exec(s);
+  let lead: Leading;
   if (jz) {
-    const rest = stripLeading(jz[2].split(/\s+/).filter(Boolean)).join(' ');
-    s = `${rest} ${jz[1]}`;
+    const rest = stripLeading(jz[2].split(/\s+/).filter(Boolean));
+    lead = { ...rest, tokens: [...rest.tokens, jz[1]] };
+  } else {
+    lead = stripLeading(s.split(/\s+/).filter(Boolean));
   }
-  const lead = stripLeading(s.split(/\s+/).filter(Boolean));
-  s = lead.join(' ');
+  s = lead.tokens.join(' ');
   s = s.replace(/\b(?:low|reduced|non|full|zero)[\s-]fat\b|\bfat[\s-]free\b/g, ' ');
+  s = s.replace(/\b(?:bone|skin)[\s-](?:in|on)\b/g, ' ');
   s = s.replace(/[^a-z\s]/g, ' ');
   const words = s.split(/\s+/).filter(Boolean);
   const cut = words.findIndex((w, idx) => idx > 0 && CUT_WORDS.has(w));
-  return (cut >= 0 ? words.slice(0, cut) : words).map(singularize);
+  return {
+    tokens: (cut >= 0 ? words.slice(0, cut) : words).map(singularize),
+    unit: lead.unit,
+    hasNumber: lead.hasNumber,
+    pluralPepper,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -245,21 +281,72 @@ function matchTokens(tokens: string[]): VocabEntry | undefined {
 const cache = new Map<string, Resolved>();
 const CACHE_MAX = 5000;
 
+function unknownResult(tokens: string[]): Resolved {
+  const kept = tokens.filter((t) => !HARD.has(t));
+  return { canonical: (kept.length > 0 ? kept : tokens).join(' '), known: false };
+}
+
+function knownResult(entry: VocabEntry): Resolved {
+  return { canonical: entry.canonical, known: true, entry, parent: entry.parent };
+}
+
+function resolvePrepared(p: Prepared): Resolved {
+  let tokens = p.tokens;
+
+  // Lists of staples: "salt and pepper", "salt & freshly ground black pepper" -> salt
+  if (tokens.includes('and')) {
+    const parts: string[][] = [[]];
+    for (const t of tokens) {
+      if (t === 'and') parts.push([]);
+      else parts[parts.length - 1].push(t);
+    }
+    const nonEmpty = parts.filter((x) => x.length > 0);
+    if (nonEmpty.length > 1) {
+      const rs = nonEmpty.map((pt) => resolvePrepared({ tokens: pt, hasNumber: false, pluralPepper: false }));
+      if (rs.every((r) => r.entry?.staple)) return rs[0];
+    }
+  }
+
+  // "chicken or vegetable broth": if there is more than one word after "or", the head
+  // noun is shared ("chicken broth"); otherwise keep the first alternative only.
+  const orIdx = tokens.indexOf('or');
+  if (orIdx > 0 && orIdx < tokens.length - 1) {
+    const left = tokens.slice(0, orIdx);
+    const right = tokens.slice(orIdx + 1);
+    if (right.length >= 2) {
+      const shared = resolvePrepared({ ...p, tokens: [...left, right[right.length - 1]] });
+      if (shared.known) return shared;
+    }
+    tokens = left;
+  } else if (orIdx === 0 || orIdx === tokens.length - 1) {
+    tokens = tokens.filter((t) => t !== 'or');
+  }
+
+  // "pepper" is ambiguous: spice-sized amounts / bare / "to taste" are black pepper,
+  // counted or plural ones are bell peppers, "1/2 tsp red pepper" is chilli flakes.
+  const core = tokens.filter((t) => !HARD.has(t));
+  const spice = p.unit !== undefined && SPICE_UNITS.has(p.unit);
+  if (core.length === 1 && core[0] === 'pepper') {
+    const bell = !spice && (p.hasNumber || p.pluralPepper);
+    const e = getEntry(bell ? 'bell pepper' : 'black pepper');
+    if (e) return knownResult(e);
+  } else if (core.length === 2 && core[0] === 'red' && core[1] === 'pepper' && spice) {
+    const e = getEntry('chilli flake');
+    if (e) return knownResult(e);
+  }
+
+  const entry = matchTokens(tokens);
+  return entry ? knownResult(entry) : unknownResult(tokens);
+}
+
 export function resolve(raw: string): Resolved {
   const cached = cache.get(raw);
   if (cached) return cached;
   // A string that is exactly a vocabulary phrase wins before any quantity stripping
-  // ("five spice" starts with a number word).
-  const direct = /\d/.test(raw) ? undefined : index().byKey.get(keyOf(raw));
-  const tokens = direct ? [] : preprocess(raw);
-  const entry = direct ?? matchTokens(tokens);
-  let result: Resolved;
-  if (entry) {
-    result = { canonical: entry.canonical, known: true, entry };
-  } else {
-    const kept = tokens.filter((t) => !HARD.has(t));
-    result = { canonical: (kept.length > 0 ? kept : tokens).join(' '), known: false };
-  }
+  // ("five spice" starts with a number word). Plural "peppers" needs the pepper rules.
+  const direct =
+    /\d/.test(raw) || /\bpeppers\b/i.test(raw) ? undefined : index().byKey.get(keyOf(raw));
+  const result = direct ? knownResult(direct) : resolvePrepared(preprocess(raw));
   if (cache.size >= CACHE_MAX) cache.clear();
   cache.set(raw, result);
   return result;
@@ -382,8 +469,9 @@ function toCanonical(s: string): string {
 
 /**
  * Can this pantry cover this recipe ingredient?
- * Order of checks: exact / family member (have) -> staple -> sibling (swap) -> missing.
- * A staple is reported as 'staple' even if only a sibling is owned (any oil will do).
+ * have: exact, a child of the requirement, a maker (egg for yolk), or a generic parent.
+ * then staple, then swap: a non-generic parent or a sibling. A staple is reported as 'staple' even if
+ * only a sibling is owned (any oil will do).
  */
 export function satisfies(pantry: Iterable<string>, required: string): SatisfyResult {
   const have = [...new Set([...pantry].map(toCanonical).filter(Boolean))];
@@ -395,11 +483,23 @@ export function satisfies(pantry: Iterable<string>, required: string): SatisfyRe
   const entry = getEntry(req);
   if (!entry) return { status: 'missing' };
 
-  if (entry.parent && have.includes(entry.parent)) return { status: 'have', using: entry.parent };
+  // a more specific item in the pantry covers the general requirement
   const child = have.find((p) => getEntry(p)?.parent === entry.canonical);
   if (child) return { status: 'have', using: child };
 
+  // entries that are made from another (egg -> egg yolk, lemon -> lemon zest)
+  const maker = entry.satisfiedBy?.find((c) => have.includes(c));
+  if (maker) return { status: 'have', using: maker };
+
+  // the general item in the pantry: fully covers only if the family is generic
+  const parent = entry.parent ? getEntry(entry.parent) : undefined;
+  if (parent && have.includes(parent.canonical) && parent.generic) {
+    return { status: 'have', using: parent.canonical };
+  }
+
   if (entry.staple) return { status: 'staple' };
+
+  if (parent && have.includes(parent.canonical)) return { status: 'swap', using: parent.canonical };
 
   if (entry.parent) {
     const sibling = have.find((p) => p !== req && getEntry(p)?.parent === entry.parent);

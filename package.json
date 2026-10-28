@@ -15,9 +15,11 @@
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "sync-docs": "node scripts/sync-docs.js",
-    "postinstall": "npm run sync-docs"
+    "postinstall": "npm run sync-docs",
+    "test": "npm test -w server && npm test -w client"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "concurrently": "^8.2.0"
   }
 }

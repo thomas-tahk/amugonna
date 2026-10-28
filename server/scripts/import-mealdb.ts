@@ -9,6 +9,7 @@
 import { PrismaClient } from '@prisma/client';
 import {
   fetchAllMeals,
+  importExitCode,
   importMeals,
   loadMealFile,
   summarise,
@@ -49,6 +50,7 @@ async function main() {
     await syncVocabulary(prisma);
     const result = await importMeals(prisma, meals, systemUser.id, profile);
     console.log(summarise(result, 40));
+    process.exitCode = importExitCode(result);
   } finally {
     await prisma.$disconnect();
   }

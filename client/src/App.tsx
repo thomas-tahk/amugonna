@@ -1,20 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
-import PantryManager from './components/PantryManager';
-import RecipeManager from './components/RecipeManager';
+import AppShell from './components/shell/AppShell';
+import { BrandIcon } from './components/shell/icons';
 import './App.css';
 
-type AppTab = 'recipes' | 'pantry';
-
 const AppContent: React.FC = () => {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<AppTab>('recipes');
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="app">
-        <div className="loading-screen">
+        <div className="loading-screen" role="status">
           <div className="loading-spinner"></div>
           <p>Loading Amugonna...</p>
         </div>
@@ -22,54 +19,25 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return (
-    <div className="app">
-      <header className="app-header">
-        <div className="header-content">
-          <h1 className="app-title">Amugonna</h1>
-          <p className="app-subtitle">Find recipes based on what you have</p>
-
-          {isAuthenticated && user && (
-            <div className="user-info">
-              <span>Welcome, {user.firstName}!</span>
-              <button onClick={logout} className="logout-btn">
-                Sign Out
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {isAuthenticated && (
-        <nav className="app-nav">
-          <button
-            className={`nav-btn ${activeTab === 'recipes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('recipes')}
-          >
-            Recipes
-          </button>
-          <button
-            className={`nav-btn ${activeTab === 'pantry' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pantry')}
-          >
-            My Pantry
-          </button>
-        </nav>
-      )}
-
-      <main className="app-main">
-        {isAuthenticated ? (
-          activeTab === 'recipes' ? <RecipeManager /> : <PantryManager />
-        ) : (
+  if (!isAuthenticated) {
+    return (
+      <div className="app">
+        <header className="app-header">
+          <div className="app-header-inner">
+            <h1 className="brand">
+              <BrandIcon width={26} height={26} />
+              Amugonna
+            </h1>
+          </div>
+        </header>
+        <main className="app-main app-main-auth">
           <AuthForm />
-        )}
-      </main>
+        </main>
+      </div>
+    );
+  }
 
-      <footer className="app-footer">
-        <p>&copy; 2025 Amugonna. Your personal recipe assistant.</p>
-      </footer>
-    </div>
-  );
+  return <AppShell />;
 };
 
 function App() {

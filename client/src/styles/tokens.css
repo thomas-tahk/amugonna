@@ -1,0 +1,75 @@
+/* Amugonna design tokens. Bold food-app palette, light only.
+   Text/background pairs are asserted >= 4.5:1 in contrast.test.ts. */
+:root {
+  color-scheme: light;
+
+  /* Surfaces and ink */
+  --color-bg: #fff6ea;            /* warm off-white page */
+  --color-surface: #ffffff;       /* cards, inputs */
+  --color-ink: #1a1210;           /* near-black text */
+  --color-ink-muted: #5c4a42;     /* secondary text */
+  --color-border: #7a6258;        /* UI borders / icons (>= 3:1) */
+  --color-border-soft: #e6d3bf;   /* decorative dividers only */
+
+  /* Brand: paprika red */
+  --color-primary: #c8250a;
+  --color-primary-hover: #a81d06;
+  --color-on-primary: #ffffff;
+  --color-primary-text: #b02008;  /* primary used as text on bg/surface */
+
+  /* Status: have / missing / swap / staple */
+  --color-have: #146c2e;          /* deep herb green: you have it */
+  --color-on-have: #ffffff;
+  --color-missing: #a31d06;
+  --color-missing-bg: #ffe4dc;
+  --color-swap: #f7a600;          /* strong amber: 1 away / swap */
+  --color-on-swap: #1a1210;
+  --color-staple: #43342e;
+  --color-on-staple: #ffffff;
+
+  /* Feedback */
+  --color-error: #a31d06;
+  --color-error-bg: #ffe4dc;
+  --color-success: #0f5a25;
+  --color-success-bg: #dcf5e3;
+
+  /* App chrome */
+  --color-header-bg: #1a1210;
+  --color-on-header: #fff6ea;
+  --color-focus: #0b57d0;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --text-sm: 0.875rem;   /* 14px, captions/badges only */
+  --text-base: 1rem;     /* 16px body */
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --leading: 1.5;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Shape */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(26, 18, 16, 0.16), 0 1px 3px rgba(26, 18, 16, 0.1);
+  --shadow-2: 0 4px 14px rgba(26, 18, 16, 0.18);
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px var(--color-bg), 0 0 0 5px var(--color-focus);
+
+  /* Layout */
+  --tap: 44px;
+  --content-max: 1100px;
+  --tabbar-h: 64px;
+}

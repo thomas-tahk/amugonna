@@ -136,8 +136,8 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
     );
   }
 
-  const missing = recipe.ingredients.filter((i) => i.status === 'missing');
-  const others = recipe.ingredients.filter((i) => i.status !== 'missing');
+  const missing = recipe.ingredients.filter((i) => i.status === 'missing' && !i.optional);
+  const others = recipe.ingredients.filter((i) => !(i.status === 'missing' && !i.optional));
   const time = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
   const metaLine = [
     recipe.category,

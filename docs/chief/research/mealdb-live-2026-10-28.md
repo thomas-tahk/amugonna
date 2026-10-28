@@ -25,3 +25,12 @@ Seen twice: almond essence, apricot jam, bamboo shoot, banana leaf, barbeque sau
 Also seen once (selection worth mapping): gruyere cheese, pinto bean, refried bean, rigatoni, farfalle, bowtie pasta, paneer, pomegranate, cranberry, smoky paprika, hot smoked paprika, mixed spice, mackerel, monkfish, lobster, oyster, sea bass fillet, red snapper, herring, hake, kielbasa, lamb shank, chuck roast, beef tenderloin, beef flank steak, ciabatta, english muffin, phyllo dough, ready rolled shortcrust pastry, gochujang, shaoxing wine, ras el hanout, cream of tartar, custard powder, fenugreek, juniper berry, habanero pepper, ancho chilli, queso fresco, manchego, stilton cheese, emmentaler cheese, pumpkin puree, pineapple juice, bulgur wheat, black eyed pea, borlotti bean, mung bean sprout, chickpea flour, grits, plum sauce, shrimp paste, seafood stock, chicken bouillon powder, beef stock concentrate, hot beef stock.
 
 Observed matcher behaviour worth keeping in mind: canned/chopped tomatoes do not satisfy fresh "tomato" (Shakshouka, tacos show "Need: tomato"); ground beef does not satisfy "beef" cuts (Bistek). Both were deliberate review decisions (#3).
+
+## After the vocabulary pass (#12) — Actions run 40680009805, commit 274645f
+- **8,090 of 8,336 lines (97.0%) link to the vocabulary** (was 89.7%). What's left is vague ("starch", "seasoning", "fruit mix") or one-offs.
+
+| pantry | cook now | 1 away | 2 away |
+|---|---|---|---|
+| BASIC | 0 | 14 | 27 |
+| BASIC_PLUS | 8 | 51 | 76 |
+| STOCKED | 24 | 69 | 122 |

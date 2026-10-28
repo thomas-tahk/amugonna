@@ -194,9 +194,159 @@ describe('canonicalize: tomato family and longest match', () => {
     expect(canonicalize(raw)).toBe(want);
   });
 
-  it('puts the tomato products under the tomato family', () => {
-    const e = resolve('canned diced tomatoes').entry;
-    expect(e?.parent).toBe('tomato');
+  it('canned tomatoes and passata are separate roots, not tomato children', () => {
+    expect(resolve('canned diced tomatoes').parent).toBeUndefined();
+    expect(resolve('passata').parent).toBeUndefined();
+    expect(resolve('cherry tomatoes').parent).toBe('tomato');
+  });
+});
+
+describe('canonicalize: reviewer fixes (round 2)', () => {
+  it.each(
+    table([
+      // 1. "X or Y noun"
+      ['1 cup chicken or vegetable broth', 'chicken stock'],
+      ['2 cups beef or chicken stock', 'beef stock'],
+      ['olive or vegetable oil', 'olive oil'],
+      ['butter or margarine', 'butter'],
+      ['1 or 2 cloves garlic', 'garlic'],
+      // 3. cooked / ground
+      ['cooked chicken', 'cooked chicken'],
+      ['roast chicken', 'cooked chicken'],
+      ['ground pork', 'ground pork'],
+      ['ground chicken', 'ground chicken'],
+      // 4. "ground" is no longer a throwaway word
+      ['ground mustard', 'mustard powder'],
+      ['ground red pepper', 'cayenne pepper'],
+      ['ground fennel', 'ground fennel'],
+      ['fennel seeds', 'fennel seed'],
+      ['ground rice', 'ground rice'],
+      ['ground cumin', 'cumin'],
+      ['ground cinnamon', 'cinnamon'],
+      ['ground black pepper', 'black pepper'],
+      ['ground pepper', 'black pepper'],
+      ['ground almonds', 'ground almond'],
+      // 5. pepper
+      ['2 peppers, sliced', 'bell pepper'],
+      ['1 pepper, diced', 'bell pepper'],
+      ['peppers', 'bell pepper'],
+      ['pepper', 'black pepper'],
+      ['pepper to taste', 'black pepper'],
+      ['1/2 tsp pepper', 'black pepper'],
+      ['1 pinch of pepper', 'black pepper'],
+      ['1/2 tsp red pepper', 'chilli flake'],
+      ['red pepper', 'red bell pepper'],
+      ['2 red peppers', 'red bell pepper'],
+      // 6. bad synonyms gone
+      ['pimento', 'pimento'],
+      ['whipped cream', 'whipped cream'],
+      // 7. staple lines
+      ['salt and pepper to taste', 'salt'],
+      ['Salt & freshly ground black pepper', 'salt'],
+      ['salt and pepper', 'salt'],
+      ['mac and cheese', 'mac and cheese'],
+      // 8. nits
+      ['bone-in chicken thighs', 'chicken thigh'],
+      ['skin-on chicken thighs', 'chicken thigh'],
+      ['half and half', 'single cream'],
+      ['1 cup half-and-half', 'single cream'],
+      ['1 tsp onion powder', 'onion powder'],
+      ['zest of 1 lemon', 'lemon zest'],
+      ['orange zest', 'orange zest'],
+      ['cake flour', 'cake flour'],
+      ['evaporated milk', 'evaporated milk'],
+      ['garlic salt', 'garlic salt'],
+      ['sun-dried tomatoes', 'sun dried tomato'],
+      ['snow peas', 'snow pea'],
+      ['grapeseed oil', 'grapeseed oil'],
+      ['corn oil', 'corn oil'],
+      ['avocado oil', 'avocado oil'],
+      ['peanut oil', 'peanut oil'],
+      ['canola oil', 'canola oil'],
+    ]),
+  )('%s -> %s', (raw, want) => {
+    expect(canonicalize(raw)).toBe(want);
+  });
+
+  it('resolve exposes parent at the top level', () => {
+    expect(resolve('chicken breast').parent).toBe('chicken');
+    expect(resolve('chicken').parent).toBeUndefined();
+    expect(resolve('yuzu kosho').parent).toBeUndefined();
+  });
+
+  it('suggest("corn") does not surface gherkin in the top 5', () => {
+    expect(suggest('corn', 5).map((e) => e.canonical)).not.toContain('gherkin');
+    expect(suggest('corn')[0].canonical).toBe('corn');
+  });
+});
+
+describe('satisfies: reviewer fixes (round 2)', () => {
+  // [pantry, required, expected status, expected using]
+  it.each([
+    // forms are not children
+    [['lemon juice'], 'lemon', 'missing', undefined],
+    [['lemon'], 'lemon juice', 'missing', undefined],
+    [['lime juice'], 'lime', 'missing', undefined],
+    [['orange juice'], 'orange', 'missing', undefined],
+    [['passata'], 'tomato', 'missing', undefined],
+    [['tomato'], 'passata', 'missing', undefined],
+    [['tomato'], 'chopped tomato', 'missing', undefined],
+    [['chopped tomato'], 'tomato', 'missing', undefined],
+    [['passata'], 'chopped tomato', 'missing', undefined],
+    [['smoked salmon'], 'salmon', 'missing', undefined],
+    [['salmon'], 'smoked salmon', 'missing', undefined],
+    [['desiccated coconut'], 'coconut', 'missing', undefined],
+    [['ground almond'], 'almond', 'missing', undefined],
+    [['cinnamon stick'], 'cinnamon', 'missing', undefined],
+    [['cinnamon'], 'cinnamon stick', 'missing', undefined],
+    // eggs cover yolk/white; yolk/white do not cover a whole egg
+    [['egg'], 'egg yolk', 'have', 'egg'],
+    [['egg'], 'egg white', 'have', 'egg'],
+    [['egg white'], 'egg', 'missing', undefined],
+    [['egg yolk'], 'egg', 'missing', undefined],
+    // zest needs the fruit
+    [['lemon'], 'lemon zest', 'have', 'lemon'],
+    [['orange'], 'orange zest', 'have', 'orange'],
+    [['lemon juice'], 'lemon zest', 'missing', undefined],
+    // parent in pantry for a child requirement is a swap...
+    [['sugar'], 'icing sugar', 'swap', 'sugar'],
+    [['flour'], 'self-raising flour', 'swap', 'flour'],
+    [['cheese'], 'parmesan', 'swap', 'cheese'],
+    [['onion'], 'red onion', 'swap', 'onion'],
+    // ...except generic parents
+    [['chicken'], 'chicken breast', 'have', 'chicken'],
+    [['rice'], 'basmati rice', 'have', 'rice'],
+    [['pasta'], 'spaghetti', 'have', 'pasta'],
+    [['bell pepper'], 'red bell pepper', 'have', 'bell pepper'],
+    [['mushroom'], 'shiitake mushroom', 'have', 'mushroom'],
+    // child in pantry for parent requirement stays have
+    [['chicken thigh'], 'chicken', 'have', 'chicken thigh'],
+    [['parmesan'], 'cheese', 'have', 'parmesan'],
+    // ground meats are their own roots
+    [['beef steak'], 'ground beef', 'missing', undefined],
+    [['steak'], 'ground beef', 'missing', undefined],
+    [['ground beef'], 'beef steak', 'missing', undefined],
+    [['chicken breast'], 'ground chicken', 'missing', undefined],
+    [['ground chicken'], 'chicken breast', 'missing', undefined],
+    [['ground pork'], 'pork shoulder', 'missing', undefined],
+    [['ground turkey'], 'ground beef', 'missing', undefined],
+    [['cooked chicken'], 'chicken', 'missing', undefined],
+    // chicken cuts stay siblings
+    [['chicken wing'], 'chicken drumstick', 'swap', 'chicken wing'],
+    // staple lines
+    [[], 'salt and pepper to taste', 'staple', undefined],
+    [[], 'Salt & freshly ground black pepper', 'staple', undefined],
+    [[], 'salt and pepper', 'staple', undefined],
+    [[], '1 pepper', 'missing', undefined],
+    [['bell pepper'], '2 peppers, sliced', 'have', 'bell pepper'],
+    // x-or-y lines never collapse to the bare generic
+    [['chicken'], '1 cup chicken or vegetable broth', 'missing', undefined],
+    [['chicken stock'], '1 cup chicken or vegetable broth', 'have', 'chicken stock'],
+    [[], 'olive oil', 'staple', undefined],
+  ] as [string[], string, string, string | undefined][])('%j + %s -> %s', (pantry, required, status, using) => {
+    const r = satisfies(pantry, required);
+    expect(r.status).toBe(status);
+    expect(r.using).toBe(using);
   });
 });
 

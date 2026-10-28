@@ -4,7 +4,7 @@
  * Pure data + tiny accessors. No DB, no dependencies. Normalisation lives in normalize.ts.
  *
  * Line format (one ingredient per line):
- *   canonical [> parent] [| synonym, synonym, ...] [@common] [@staple] [@name=Display Name]
+ *   canonical [> parent] [| synonym, synonym, ...] [@common] [@staple] [@generic] [@needs=a/b] [@name=Display Name]
  *
  * - Synonyms are matched after lowercasing, de-accenting, hyphen -> space and singularising,
  *   so plurals ("eggs"), "free-range" etc. never need to be listed.
@@ -43,6 +43,13 @@ export interface VocabEntry {
   readonly staple: boolean;
   /** worth a tap-to-tick quick-pick tile */
   readonly common: boolean;
+  /**
+   * Parent whose pantry presence fully covers any of its children ("chicken" covers
+   * "chicken breast"). Other parents only give a swap.
+   */
+  readonly generic?: boolean;
+  /** Canonicals that, if in the pantry, fully cover this entry (egg covers egg yolk). */
+  readonly satisfiedBy?: readonly string[];
 }
 
 const RAW: Record<Category, string[]> = {
@@ -78,7 +85,7 @@ const RAW: Record<Category, string[]> = {
     'squash | winter squash',
     'butternut squash > squash | butternut pumpkin',
     'pumpkin',
-    'bell pepper | capsicum, sweet pepper @common',
+    'bell pepper | capsicum, sweet pepper @generic @common',
     'red bell pepper > bell pepper | red pepper, red capsicum, roasted red pepper',
     'green bell pepper > bell pepper | green pepper, green capsicum',
     'yellow bell pepper > bell pepper | yellow pepper, orange bell pepper, orange pepper',
@@ -106,9 +113,10 @@ const RAW: Record<Category, string[]> = {
     // peas, beans, corn
     'green bean | french bean, string bean, fine bean, runner bean, haricot vert',
     'pea | green pea, garden pea, petits pois, frozen pea @name=Peas @common',
+    'snow pea | mangetout, sugar snap pea, sugar snap',
     'corn | sweetcorn, sweet corn, corn kernel, corn on the cob, corn cob @common',
     // mushrooms
-    'mushroom | white mushroom, closed cup mushroom @common',
+    'mushroom | white mushroom, closed cup mushroom @generic @common',
     'chestnut mushroom > mushroom | cremini mushroom, crimini mushroom, brown mushroom, baby bella',
     'portobello mushroom > mushroom | portobello, portabella, portabello, flat mushroom',
     'shiitake mushroom > mushroom | shiitake',
@@ -117,11 +125,14 @@ const RAW: Record<Category, string[]> = {
     'apple | red apple, green apple, granny smith, braeburn, gala apple, cooking apple, bramley apple @common',
     'banana @common',
     'lemon @common',
-    'lemon juice > lemon | juice of lemon',
+    'lemon juice | juice of lemon',
+    'lemon zest | lemon peel, lemon rind, zest of lemon @needs=lemon',
     'lime @common',
-    'lime juice > lime | juice of lime',
+    'lime juice | juice of lime',
+    'lime zest | lime peel, lime rind, zest of lime @needs=lime',
     'orange | navel orange, blood orange @common',
-    'orange juice > orange',
+    'orange juice',
+    'orange zest | orange peel, orange rind, zest of orange @needs=orange',
     'strawberry @common',
     'blueberry @common',
     'raspberry',
@@ -135,23 +146,24 @@ const RAW: Record<Category, string[]> = {
   ],
 
   'Meat & Fish': [
-    'chicken | whole chicken, chicken piece, chicken meat, roast chicken, cooked chicken @common',
+    'chicken | whole chicken, chicken piece, chicken meat @generic @common',
     'chicken breast > chicken | chicken fillet, chicken breast fillet, chicken cutlet, chicken escalope @common',
     'chicken thigh > chicken | chicken thigh fillet @common',
     'chicken wing > chicken | chicken wingette',
     'chicken drumstick > chicken | chicken leg, chicken leg quarter',
-    'ground chicken > chicken | chicken mince, minced chicken',
+    'cooked chicken | roast chicken, leftover chicken, rotisserie chicken, poached chicken',
+    'ground chicken | chicken mince, minced chicken',
     'turkey | turkey meat',
-    'ground turkey > turkey | turkey mince, minced turkey',
+    'ground turkey | turkey mince, minced turkey',
     'beef | stewing beef, diced beef, beef chuck, braising beef, beef joint, roast beef, casserole beef @common',
-    'ground beef > beef | minced beef, beef mince, mince, minced meat, hamburger meat, mince beef @common',
+    'ground beef | minced beef, beef mince, mince, minced meat, hamburger meat, mince beef @common',
     'beef steak > beef | steak, sirloin steak, ribeye steak, rib eye steak, fillet steak, rump steak, flank steak, braising steak, sirloin, ribeye',
     'pork | pork shoulder, pork leg, pork joint, diced pork',
     'pork chop > pork | pork loin chop, pork steak, pork loin',
     'pork belly > pork | belly pork, pork belly slice',
-    'ground pork > pork | pork mince, minced pork',
+    'ground pork | pork mince, minced pork',
     'lamb | diced lamb, lamb leg, lamb shoulder, leg of lamb, lamb neck',
-    'ground lamb > lamb | lamb mince, minced lamb',
+    'ground lamb | lamb mince, minced lamb',
     'bacon | streaky bacon, back bacon, bacon rasher, bacon strip, smoked bacon, bacon slice, bacon bit, lardon @common',
     'pancetta',
     'ham | gammon, cooked ham, smoked ham, deli ham, ham slice @common',
@@ -159,7 +171,7 @@ const RAW: Record<Category, string[]> = {
     'sausage | pork sausage, italian sausage, breakfast sausage, sausage link, cumberland sausage, beef sausage @common',
     'chorizo | chorizo sausage',
     'salmon | salmon fillet, salmon steak @common',
-    'smoked salmon > salmon | lox',
+    'smoked salmon | lox',
     'tuna | tuna steak, tuna chunk, tuna in oil, tuna in brine @common',
     'white fish | fish fillet, white fish fillet, firm white fish',
     'cod > white fish | cod fillet',
@@ -171,17 +183,18 @@ const RAW: Record<Category, string[]> = {
 
   'Dairy & Eggs': [
     'egg | whole egg, hen egg, egg wash @name=Eggs @common',
-    'egg white > egg',
-    'egg yolk > egg | yolk',
+    'egg white @needs=egg',
+    'egg yolk | yolk @needs=egg',
     'milk | whole milk, full fat milk, semi skimmed milk, skimmed milk, skim milk, cow milk, dairy milk @common',
     'almond milk',
     'oat milk | oat drink',
     'soy milk | soya milk, soymilk',
     'buttermilk',
     'condensed milk | sweetened condensed milk',
+    'evaporated milk',
     'cream | pouring cream',
-    'heavy cream > cream | double cream, whipping cream, heavy whipping cream, whipped cream, thickened cream @common',
-    'single cream > cream | light cream, coffee cream',
+    'heavy cream > cream | double cream, whipping cream, heavy whipping cream, thickened cream @common',
+    'single cream > cream | light cream, coffee cream, half and half',
     'sour cream | soured cream',
     'creme fraiche',
     'butter | unsalted butter, salted butter, softened butter, melted butter, stick of butter @common',
@@ -203,12 +216,12 @@ const RAW: Record<Category, string[]> = {
   ],
 
   'Grains & Pasta': [
-    'rice | long grain rice, white rice, long-grain rice, plain rice, steamed rice, cooked rice @common',
+    'rice | long grain rice, white rice, long-grain rice, plain rice, steamed rice, cooked rice @generic @common',
     'basmati rice > rice | basmati',
     'jasmine rice > rice | jasmine',
     'brown rice > rice | wholegrain rice, whole grain rice',
     'arborio rice > rice | risotto rice, arborio',
-    'pasta | dried pasta, pasta shape @common',
+    'pasta | dried pasta, pasta shape @generic @common',
     'spaghetti > pasta',
     'penne > pasta | penne pasta, penne rigate',
     'fusilli > pasta | rotini, fusilli pasta',
@@ -245,8 +258,9 @@ const RAW: Record<Category, string[]> = {
   ],
 
   'Canned & Jarred': [
-    'chopped tomato > tomato | canned tomato, tinned tomato, diced tomato, crushed tomato, whole peeled tomato, peeled tomato @name=Chopped Tomatoes @common',
-    'passata > tomato | tomato sauce, sieved tomato, strained tomato, tomato passata',
+    'chopped tomato | canned tomato, tinned tomato, diced tomato, crushed tomato, whole peeled tomato, peeled tomato @name=Chopped Tomatoes @common',
+    'passata | tomato sauce, sieved tomato, strained tomato, tomato passata',
+    'sun dried tomato | sundried tomato',
     'tomato paste | tomato puree, concentrated tomato puree, tomato concentrate @common',
     'pasta sauce | marinara, marinara sauce, spaghetti sauce, tomato pasta sauce, bolognese sauce',
     'chickpea | garbanzo bean, garbanzo, chick pea @name=Chickpeas @common',
@@ -260,7 +274,7 @@ const RAW: Record<Category, string[]> = {
     'coconut milk | coconut drink, light coconut milk @common',
     'olive | black olive, green olive, kalamata olive, pitted olive, kalamata',
     'caper | caperberry',
-    'gherkin | pickle, pickled gherkin, dill pickle, cornichon, pickled cucumber',
+    'gherkin | pickle, pickled gherkin, dill pickle, pickled cucumber',
     'stock | broth, stock cube, bouillon cube, bouillon, stock pot, stock powder',
     'chicken stock > stock | chicken broth, chicken bouillon, chicken stock cube, chicken stock pot, chicken bouillon cube, chicken stock powder @common',
     'beef stock > stock | beef broth, beef bouillon, beef stock cube, beef bouillon cube, beef stock pot',
@@ -268,29 +282,33 @@ const RAW: Record<Category, string[]> = {
   ],
 
   'Spices & Herbs': [
-    'black pepper | pepper, ground black pepper, black peppercorn, peppercorn, cracked black pepper, cracked pepper @staple',
+    'black pepper | pepper, ground black pepper, ground pepper, black peppercorn, peppercorn, cracked black pepper, cracked pepper @staple',
     'white pepper | ground white pepper, white peppercorn',
     'salt | sea salt, kosher salt, table salt, flaky salt, rock salt, coarse salt, himalayan salt, maldon salt, fine salt @staple',
     'garlic powder | garlic granule @common',
+    'onion powder | onion granule',
+    'garlic salt',
     'cumin | ground cumin, cumin seed, cumin powder @common',
     'coriander seed | ground coriander, coriander powder, coriander spice, dried coriander',
     'paprika | sweet paprika, ground paprika, hungarian paprika @common',
     'smoked paprika > paprika | pimenton, spanish paprika',
     'turmeric | ground turmeric, turmeric powder @common',
     'cinnamon | ground cinnamon, cinnamon powder @common',
-    'cinnamon stick > cinnamon | cinnamon bark, cinnamon quill',
+    'cinnamon stick | cinnamon bark, cinnamon quill',
     'nutmeg | ground nutmeg, whole nutmeg',
     'clove | whole clove, ground clove, clove spice',
     'cardamom | cardamom pod, ground cardamom, green cardamom',
-    'cayenne pepper | cayenne, ground cayenne',
+    'cayenne pepper | cayenne, ground cayenne, ground red pepper',
+    'fennel seed',
+    'ground fennel',
     'chilli powder | chili powder, ground chilli, ground chili, hot chilli powder @common',
     'chilli flake | red pepper flake, crushed red pepper, crushed chilli, dried chilli flake, chili flake, crushed chili, dried chilli, red chilli flake',
     'garam masala @common',
     'curry powder | madras curry powder, mild curry powder, hot curry powder @common',
     'five spice | chinese five spice, five spice powder',
-    'allspice | all spice, ground allspice, pimento',
+    'allspice | all spice, ground allspice',
     'mustard seed | black mustard seed, yellow mustard seed',
-    'mustard powder | dry mustard, english mustard powder, dried mustard',
+    'mustard powder | ground mustard, dry mustard, english mustard powder, dried mustard',
     'ground ginger | ginger powder, dried ginger, powdered ginger',
     'saffron | saffron strand, saffron thread',
     'mixed herb | dried mixed herb, herbes de provence, mixed dried herb',
@@ -317,6 +335,9 @@ const RAW: Record<Category, string[]> = {
     'sunflower oil > cooking oil',
     'canola oil > cooking oil | rapeseed oil, canola',
     'peanut oil > cooking oil | groundnut oil',
+    'corn oil > cooking oil | maize oil',
+    'avocado oil > cooking oil',
+    'grapeseed oil > cooking oil | grape seed oil',
     'coconut oil > cooking oil | virgin coconut oil, refined coconut oil',
     'cooking spray > cooking oil | oil spray, spray oil, non stick spray',
     'sesame oil | toasted sesame oil, roasted sesame oil',
@@ -365,6 +386,7 @@ const RAW: Record<Category, string[]> = {
     'all-purpose flour > flour | plain flour, white flour, ap flour, flour all purpose, general purpose flour @common',
     'self-raising flour > flour | self rising flour, self-rising flour, selfraising flour @common',
     'bread flour > flour | strong flour, strong white flour, strong bread flour, strong white bread flour, high gluten flour',
+    'cake flour > flour',
     'whole wheat flour > flour | wholemeal flour, wholewheat flour, whole meal flour, brown flour, wholemeal plain flour',
     'cornstarch | cornflour, corn flour, corn starch, maize starch, cornflour paste',
     'sugar | white sugar, granulated sugar, granulated, refined sugar, table sugar @common',
@@ -381,7 +403,7 @@ const RAW: Record<Category, string[]> = {
     'milk chocolate > chocolate',
     'white chocolate > chocolate',
     'chocolate chip > chocolate | choc chip, chocolate chunk, chocolate drop, chocolate morsel',
-    'desiccated coconut > coconut | shredded coconut, coconut flake, flaked coconut, coconut shred, unsweetened coconut',
+    'desiccated coconut | shredded coconut, coconut flake, flaked coconut, coconut shred, unsweetened coconut',
     'raisin | seedless raisin, golden raisin',
     'sultana',
   ],
@@ -389,7 +411,7 @@ const RAW: Record<Category, string[]> = {
   'Nuts & Seeds': [
     'almond | whole almond, blanched almond, raw almond, almond nut @common',
     'flaked almond > almond | sliced almond, slivered almond, almond flake',
-    'ground almond > almond | almond flour, almond meal, almond powder',
+    'ground almond | almond flour, almond meal, almond powder',
     'walnut | walnut piece, walnut half, walnut kernel',
     'cashew | cashew nut',
     'peanut | groundnut, roasted peanut, salted peanut, monkey nut @common',
@@ -457,6 +479,8 @@ function parseLine(line: string, category: Category): VocabEntry {
     parent: parentRaw ? parentRaw.toLowerCase() : undefined,
     staple: flags.has('staple'),
     common: flags.has('common'),
+    generic: flags.has('generic') || undefined,
+    satisfiedBy: flags.has('needs') ? flags.get('needs')!.split('/').map((x) => x.trim().toLowerCase()) : undefined,
   };
 }
 

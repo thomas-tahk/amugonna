@@ -10,13 +10,12 @@
 .brand svg { color: var(--color-swap); }
 .header-spacer { flex: 1; }
 .user-greeting { font-size: var(--text-base); }
-.app-header .btn-signout { color: var(--color-on-header); border: 2px solid var(--color-on-header); border-radius: var(--radius-md); background: transparent; min-height: var(--tap); padding: 0 var(--space-4); font-size: var(--text-base); font-weight: 700; }
-.app-header .btn-signout:hover { transform: none; }
+.app-header .btn-signout { color: var(--color-on-header); border-color: var(--color-on-header); background: transparent; padding: 0 var(--space-4); }
 .app-header .btn-signout:hover:not(:disabled) { background: var(--color-on-header); color: var(--color-header-bg); }
 
 .app-main {
   flex: 1; width: 100%; max-width: var(--content-max); margin: 0 auto;
-  padding: var(--space-5) var(--space-4) calc(var(--tabbar-h) + var(--space-6));
+  padding: var(--space-5) var(--space-4) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--space-6));
 }
 .app-main-auth { display: flex; align-items: flex-start; justify-content: center; padding-bottom: var(--space-6); }
 
@@ -33,7 +32,7 @@
   color: var(--color-ink-muted); font-size: var(--text-sm); font-weight: 700; cursor: pointer;
 }
 .tab svg { width: 26px; height: 26px; }
-.tab[aria-selected="true"] { color: var(--color-primary-text); border-top-color: var(--color-primary); }
+.tab[aria-current="page"] { color: var(--color-primary-text); border-top-color: var(--color-primary); }
 .tab:focus-visible { box-shadow: inset 0 0 0 3px var(--color-focus); }
 
 .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: var(--space-4); }
@@ -53,7 +52,7 @@
     color: var(--color-on-header); font-size: var(--text-base);
   }
   .tab svg { width: 22px; height: 22px; }
-  .tab[aria-selected="true"] { color: var(--color-on-header); border-bottom-color: var(--color-swap); }
+  .tab[aria-current="page"] { color: var(--color-on-header); border-bottom-color: var(--color-swap); }
   .tab:hover { background: rgba(255, 246, 234, 0.12); }
   .tab:focus-visible { box-shadow: inset 0 0 0 3px var(--color-on-header); }
   .app-main { padding-bottom: var(--space-6); }

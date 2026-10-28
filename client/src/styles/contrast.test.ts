@@ -80,6 +80,8 @@ describe('design token contrast (WCAG)', () => {
   });
 
   it.each(UI_PAIRS)('%s on %s is at least 3:1', (fg, bg) => {
+    expect(tokens[fg], fg).toBeDefined();
+    expect(tokens[bg], bg).toBeDefined();
     expect(ratio(tokens[fg], tokens[bg])).toBeGreaterThanOrEqual(3);
   });
 });

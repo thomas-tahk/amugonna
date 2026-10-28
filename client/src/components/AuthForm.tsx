@@ -128,7 +128,7 @@ const AuthForm: React.FC = () => {
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
-                  className="input"
+              className="input"
               type="email"
               id="email"
               name="email"
@@ -142,7 +142,7 @@ const AuthForm: React.FC = () => {
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
-                  className="input"
+              className="input"
               type="password"
               id="password"
               name="password"

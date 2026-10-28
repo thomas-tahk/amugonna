@@ -45,16 +45,27 @@ for (const [name, viewport] of Object.entries(sizes)) {
       }, user);
     }
     await page.goto(BASE);
-    await page.waitForSelector(signedIn ? '[role=tab]' : 'form');
+    await page.waitForSelector(signedIn ? 'nav[aria-label=Main] button' : 'form');
     await page.waitForTimeout(400);
     const label = signedIn ? 'signed-in' : 'signed-out';
     await page.screenshot({ path: `${OUT}/shell-${label}-${name}.png` });
     if (signedIn) {
-      await page.getByRole('tab', { name: 'Cook' }).click();
+      await page.getByRole('button', { name: 'Cook', exact: true }).click();
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${OUT}/shell-signed-in-cook-${name}.png` });
-      const boxes = await page.getByRole('tab').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+      const boxes = await page.locator('nav[aria-label=Main] button').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
       console.log(name, 'tab heights', boxes);
+      const probe = await page.evaluate(() => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-primary';
+        b.textContent = 'probe';
+        document.body.appendChild(b);
+        const c = getComputedStyle(b);
+        const r = { bg: c.backgroundColor, radius: c.borderRadius, minH: c.minHeight, weight: c.fontWeight };
+        b.remove();
+        return r;
+      });
+      console.log(name, 'plain .btn.btn-primary outside components:', JSON.stringify(probe));
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       console.log(name, 'horizontal overflow:', overflow);
     }

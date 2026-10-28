@@ -62,58 +62,6 @@
   margin-bottom: var(--space-1);
 }
 
-/* Scoped (.auth-form prefix) so the legacy global .btn/.form-group rules in
-   PantryManager/RecipeForm CSS cannot override the design-system look. */
-.auth-form .form-group {
-  display: block;
-}
-
-.auth-form .form-group input.input {
-  min-height: var(--tap);
-  padding: var(--space-2) var(--space-4);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  color: var(--color-ink);
-  background: var(--color-surface);
-}
-
-.auth-form .form-group input.input:focus {
-  border-color: var(--color-focus);
-  box-shadow: var(--focus-ring);
-}
-
-.auth-form .btn {
-  min-height: var(--tap);
-  padding: 0 var(--space-5);
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: 700;
-}
-
-.auth-form .btn:hover {
-  transform: none;
-}
-
-.auth-form .btn-primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.auth-form .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.auth-form .btn-ghost {
-  background: transparent;
-  color: var(--color-primary-text);
-}
-
-.auth-form .btn-ghost:hover:not(:disabled) {
-  background: var(--color-error-bg);
-}
-
 .password-requirements {
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
@@ -135,7 +83,7 @@
   gap: var(--space-1);
 }
 
-.auth-form .switch-btn {
+.switch-btn {
   padding: 0 var(--space-3);
 }
 

@@ -18,15 +18,12 @@ const AppShell: React.FC = () => {
             <BrandIcon width={26} height={26} />
             Amugonna
           </h1>
-          <nav className="tabs" role="tablist" aria-label="Main sections">
+          <nav className="tabs" aria-label="Main">
             {TABS.map(({ id, label, Icon }) => (
               <button
                 key={id}
                 type="button"
-                role="tab"
-                id={`tab-${id}`}
-                aria-selected={id === activeTab}
-                aria-controls="tabpanel"
+                aria-current={id === activeTab ? 'page' : undefined}
                 className="tab"
                 onClick={() => setActiveTab(id)}
               >
@@ -42,13 +39,8 @@ const AppShell: React.FC = () => {
           </button>
         </div>
       </header>
-      <main
-        className="app-main"
-        role="tabpanel"
-        id="tabpanel"
-        aria-labelledby={`tab-${active.id}`}
-      >
-        <Screen />
+      <main className="app-main">
+        <Screen key={active.id} />
       </main>
     </div>
   );

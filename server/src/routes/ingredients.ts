@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import { CATEGORIES, suggest } from '../lib/ingredients/index.js';
 import {
   MAX_PARSE_LENGTH,
@@ -13,27 +13,37 @@ import {
 
 const router = express.Router();
 
-// GET /api/ingredients - Search ingredients
-router.get('/', async (req, res) => {
+// GET /api/ingredients - Search ingredients (public; optional Bearer token)
+// Visible: vocabulary entries, ingredients used by a public recipe, and the caller's own pantry.
+// Other users' private free-text ingredients are never returned.
+router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { search, category, limit = '20' } = req.query;
-    
-    const searchConditions: any = {};
-    
+    const { search, category } = req.query;
+    const rawLimit = parseInt(String(req.query.limit ?? '20'), 10);
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
+
+    const visible: any[] = [
+      { sortOrder: { not: null } },
+      { recipeIngredients: { some: { recipe: { isPublic: true } } } },
+    ];
+    if (req.user) visible.push({ userIngredients: { some: { userId: req.user.userId } } });
+
+    const and: any[] = [{ OR: visible }];
+
     if (search && typeof search === 'string') {
-      searchConditions.name = {
-        contains: search,
-        mode: 'insensitive' // Case-insensitive search
-      };
+      const like = search.trim().slice(0, 80).replace(/[\\%_]/g, '\\$&');
+      and.push({ name: { contains: like, mode: 'insensitive' } });
     }
-    
+
     if (category && typeof category === 'string') {
-      searchConditions.category = category;
+      and.push({ category });
     }
+
+    const searchConditions = { AND: and };
 
     const ingredients = await prisma.ingredient.findMany({
       where: searchConditions,
-      take: parseInt(limit as string),
+      take: limit,
       orderBy: {
         name: 'asc'
       },

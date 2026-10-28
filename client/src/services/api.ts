@@ -13,7 +13,6 @@ import type {
   RecipesResponse,
   CreateRecipeData,
   UpdateRecipeData,
-  SuggestionsResponse,
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
@@ -230,15 +229,6 @@ export const recipesApi = {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
-    });
-  },
-
-  getSuggestions: async (
-    token?: string
-  ): Promise<ApiResponse<SuggestionsResponse>> => {
-    return apiRequest('/recipes/suggestions', {
-      method: 'GET',
-      headers: getAuthHeaders(token),
     });
   },
 };

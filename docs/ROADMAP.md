@@ -1,3 +1,5 @@
+> **Superseded by [docs/chief/vision.md](chief/vision.md) as of 2026-10-28.** Kept for history; do not plan from it.
+
 # Development Roadmap
 
 ## Strategic Direction Change (December 2025)

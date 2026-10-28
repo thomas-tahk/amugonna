@@ -1,30 +1,49 @@
 import express from 'express';
 import { prisma } from '../lib/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
+import { CATEGORIES, suggest } from '../lib/ingredients/index.js';
+import {
+  MAX_PARSE_LENGTH,
+  PantryInputError,
+  applyBulk,
+  loadPantry,
+  parsePantryText,
+  validateBulk,
+} from '../lib/pantry/index.js';
 
 const router = express.Router();
 
-// GET /api/ingredients - Search ingredients
-router.get('/', async (req, res) => {
+// GET /api/ingredients - Search ingredients (public; optional Bearer token)
+// Visible: vocabulary entries, ingredients used by a public recipe, and the caller's own pantry.
+// Other users' private free-text ingredients are never returned.
+router.get('/', optionalAuth, async (req, res) => {
   try {
-    const { search, category, limit = '20' } = req.query;
-    
-    const searchConditions: any = {};
-    
+    const { search, category } = req.query;
+    const rawLimit = parseInt(String(req.query.limit ?? '20'), 10);
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 50);
+
+    const visible: any[] = [
+      { sortOrder: { not: null } },
+      { recipeIngredients: { some: { recipe: { isPublic: true } } } },
+    ];
+    if (req.user) visible.push({ userIngredients: { some: { userId: req.user.userId } } });
+
+    const and: any[] = [{ OR: visible }];
+
     if (search && typeof search === 'string') {
-      searchConditions.name = {
-        contains: search,
-        mode: 'insensitive' // Case-insensitive search
-      };
+      const like = search.trim().slice(0, 80).replace(/[\\%_]/g, '\\$&');
+      and.push({ name: { contains: like, mode: 'insensitive' } });
     }
-    
+
     if (category && typeof category === 'string') {
-      searchConditions.category = category;
+      and.push({ category });
     }
+
+    const searchConditions = { AND: and };
 
     const ingredients = await prisma.ingredient.findMany({
       where: searchConditions,
-      take: parseInt(limit as string),
+      take: limit,
       orderBy: {
         name: 'asc'
       },
@@ -105,6 +124,7 @@ router.get('/user', authenticateToken, async (req, res) => {
           select: {
             id: true,
             name: true,
+            canonical: true,
             category: true,
             commonUnits: true
           }
@@ -328,6 +348,114 @@ router.delete('/user/:id', authenticateToken, async (req, res) => {
       success: false,
       message: 'Internal server error while removing ingredient'
     });
+  }
+});
+
+// GET /api/ingredients/common - quick-pick grid + assumed staples (public)
+router.get('/common', async (_req, res) => {
+  try {
+    const rows = await prisma.ingredient.findMany({
+      where: { OR: [{ isCommon: true }, { isStaple: true }] },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, canonical: true, category: true, isCommon: true, isStaple: true, parentId: true }
+    });
+    const item = (r: (typeof rows)[number]) => ({ id: r.id, name: r.name, canonical: r.canonical });
+    const groups = CATEGORIES
+      .map((category) => ({ category: category as string, items: rows.filter((r) => r.isCommon && r.category === category).map(item) }))
+      .filter((g) => g.items.length > 0);
+    // oil children are staples too, but the client shows one "cooking oil" entry
+    const staples = rows.filter((r) => r.isStaple && r.parentId === null).map(item);
+    res.json({ success: true, data: { groups, staples } });
+  } catch (error) {
+    console.error('Common ingredients error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error while fetching common ingredients' });
+  }
+});
+
+// GET /api/ingredients/suggest?q=&limit=8 - type-ahead (public)
+router.get('/suggest', async (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
+    const rawLimit = parseInt(String(req.query.limit ?? '8'), 10);
+    const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 8, 1), 20);
+    if (!q) return res.json({ success: true, data: { items: [] } });
+
+    const hits = suggest(q, limit);
+    const rows = hits.length
+      ? await prisma.ingredient.findMany({
+          where: { canonical: { in: hits.map((h) => h.canonical) } },
+          select: { id: true, name: true, canonical: true, category: true }
+        })
+      : [];
+    const byCanonical = new Map(rows.map((r) => [r.canonical, r]));
+    const items = hits.flatMap((h) => {
+      const r = byCanonical.get(h.canonical);
+      return r ? [r] : [];
+    });
+
+    if (items.length < limit) {
+      // DB-only ingredients (user-created / imported) come after the vocabulary hits
+      const taken = new Set(items.map((i) => i.id));
+      // only ingredients a public recipe uses: other users' private free-text entries stay private
+      const like = q.replace(/[\\%_]/g, '\\$&');
+      const extra = await prisma.ingredient.findMany({
+        where: {
+          id: { notIn: [...taken] },
+          recipeIngredients: { some: { recipe: { isPublic: true } } },
+          OR: [{ name: { contains: like, mode: 'insensitive' } }, { canonical: { contains: like, mode: 'insensitive' } }]
+        },
+        orderBy: { name: 'asc' },
+        take: limit - items.length,
+        select: { id: true, name: true, canonical: true, category: true }
+      });
+      items.push(...extra);
+    }
+
+    res.json({ success: true, data: { items } });
+  } catch (error) {
+    console.error('Ingredient suggest error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error during ingredient suggestions' });
+  }
+});
+
+// POST /api/ingredients/user/bulk - add/remove many pantry items at once (protected)
+router.post('/user/bulk', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const change = validateBulk(req.body);
+    const result = await prisma.$transaction(async (tx) => {
+      const resolved = await applyBulk(tx, userId, change);
+      return { resolved, ingredients: await loadPantry(tx, userId) };
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof PantryInputError) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    console.error('Bulk pantry error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error while updating pantry' });
+  }
+});
+
+// POST /api/ingredients/user/parse - split free text into items to confirm; saves nothing (protected)
+router.post('/user/parse', authenticateToken, async (req, res) => {
+  const text = req.body?.text;
+  if (typeof text !== 'string' || text.trim().length === 0 || text.length > MAX_PARSE_LENGTH) {
+    return res.status(400).json({ success: false, message: `text must be a string of 1-${MAX_PARSE_LENGTH} characters` });
+  }
+  try {
+    const pieces = parsePantryText(text);
+    // unknown text may still match a DB-only ingredient created earlier
+    const rows = await prisma.ingredient.findMany({
+      where: { canonical: { in: pieces.map((p) => p.canonical) } },
+      select: { id: true, canonical: true }
+    });
+    const idByCanonical = new Map(rows.map((r) => [r.canonical, r.id]));
+    const items = pieces.map((p) => ({ ...p, ingredientId: idByCanonical.get(p.canonical) ?? null }));
+    res.json({ success: true, data: { items } });
+  } catch (error) {
+    console.error('Parse pantry text error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error while parsing ingredients' });
   }
 });
 

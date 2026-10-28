@@ -14,7 +14,7 @@
 .back-btn {
   background: none;
   border: none;
-  color: #3b82f6;
+  color: var(--color-primary-text);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -22,7 +22,7 @@
 }
 
 .back-btn:hover {
-  color: #2563eb;
+  color: var(--color-primary-text);
 }
 
 .detail-actions {
@@ -38,7 +38,7 @@
   font-size: 22px;
   padding: 4px 10px;
   cursor: pointer;
-  color: #9ca3af;
+  color: var(--color-ink-muted);
   transition: all 0.15s;
   line-height: 1;
 }
@@ -54,7 +54,7 @@
   color: #ef4444;
 }
 
-.btn {
+.recipe-detail .btn {
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
@@ -64,21 +64,21 @@
   transition: background-color 0.2s;
 }
 
-.btn-secondary {
+.recipe-detail .btn-secondary {
   background: #f3f4f6;
   color: #374151;
 }
 
-.btn-secondary:hover {
+.recipe-detail .btn-secondary:hover {
   background: #e5e7eb;
 }
 
-.btn-danger {
+.recipe-detail .btn-danger {
   background: #fef2f2;
   color: #dc2626;
 }
 
-.btn-danger:hover {
+.recipe-detail .btn-danger:hover {
   background: #fee2e2;
 }
 
@@ -138,7 +138,7 @@
 
 .tag-cuisine {
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--color-primary-text);
 }
 
 .tag-dietary {
@@ -149,7 +149,7 @@
 .source-info {
   margin-top: 12px;
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--color-ink-muted);
 }
 
 .detail-body {
@@ -199,7 +199,7 @@
 }
 
 .optional-label {
-  color: #9ca3af;
+  color: var(--color-ink-muted);
   font-size: 12px;
 }
 
@@ -255,21 +255,4 @@
   .detail-header h2 {
     font-size: 1.4em;
   }
-}
-
-@media (prefers-color-scheme: dark) {
-  .recipe-detail { color: #e2e8f0; }
-  .detail-header h2 { color: #f1f5f9; }
-  .detail-header { border-bottom-color: #334155; }
-  .detail-description { color: #94a3b8; }
-  .meta-chip { background: #1e293b; border-color: #334155; color: #cbd5e1; }
-  .tag { background: #1e293b; color: #94a3b8; }
-  .tag-cuisine { background: #1e3a5f; color: #60a5fa; }
-  .tag-dietary { background: #14532d; color: #4ade80; }
-  .ingredient-list li { background: #1e293b; color: #cbd5e1; }
-  .instructions { background: #1e293b; }
-  .instruction-line { color: #cbd5e1; }
-  .btn-secondary { background: #334155; color: #e2e8f0; }
-  .btn-secondary:hover { background: #475569; }
-  .favorite-btn { border-color: #334155; }
 }

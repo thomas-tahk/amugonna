@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './AuthForm.css';
 
 const AuthForm: React.FC = () => {
-  const { login, register } = useAuth();
+  const { login, register, sessionMessage } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ const AuthForm: React.FC = () => {
           setError(result.message);
         }
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -90,7 +90,12 @@ const AuthForm: React.FC = () => {
           }
         </p>
 
-        {error && <div className="message error">{error}</div>}
+        {sessionMessage && !error && (
+          <div className="message error" role="status">
+            {sessionMessage}
+          </div>
+        )}
+        {error && <div className="message error" role="alert">{error}</div>}
         {success && <div className="message success">{success}</div>}
 
         <form onSubmit={handleSubmit}>
@@ -99,6 +104,7 @@ const AuthForm: React.FC = () => {
               <div className="form-group">
                 <label htmlFor="firstName">First Name</label>
                 <input
+                  className="input"
                   type="text"
                   id="firstName"
                   name="firstName"
@@ -111,6 +117,7 @@ const AuthForm: React.FC = () => {
               <div className="form-group">
                 <label htmlFor="lastName">Last Name</label>
                 <input
+                  className="input"
                   type="text"
                   id="lastName"
                   name="lastName"
@@ -126,6 +133,7 @@ const AuthForm: React.FC = () => {
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
+              className="input"
               type="email"
               id="email"
               name="email"
@@ -139,6 +147,7 @@ const AuthForm: React.FC = () => {
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
+              className="input"
               type="password"
               id="password"
               name="password"
@@ -157,7 +166,7 @@ const AuthForm: React.FC = () => {
 
           <button 
             type="submit" 
-            className="submit-btn"
+            className="btn btn-primary btn-block submit-btn"
             disabled={isLoading}
           >
             {isLoading ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account')}
@@ -169,7 +178,7 @@ const AuthForm: React.FC = () => {
           <button 
             type="button" 
             onClick={switchMode}
-            className="switch-btn"
+            className="btn btn-ghost switch-btn"
             disabled={isLoading}
           >
             {isLogin ? 'Sign up' : 'Sign in'}

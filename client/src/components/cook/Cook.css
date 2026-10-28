@@ -1,0 +1,118 @@
+.cook { display: block; }
+.cook-heading { margin: var(--space-5) 0 var(--space-3); }
+.cook-section { margin-bottom: var(--space-6); }
+
+.cook-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr; gap: var(--space-4);
+}
+@media (min-width: 600px) { .cook-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .cook-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1100px) { .cook-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.cook-card {
+  display: flex; flex-direction: column; width: 100%; height: 100%;
+  padding: 0; overflow: hidden; text-align: left; cursor: pointer;
+  font: inherit;
+}
+.cook-card:hover { border-color: var(--color-ink); }
+.cook-card-media { display: block; aspect-ratio: 16 / 9; background: var(--color-border-soft); overflow: hidden; }
+.cook-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cook-card-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  background: var(--color-ink); color: var(--color-swap);
+  font-size: var(--text-3xl); font-weight: 800;
+}
+.cook-card-body { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4); }
+.cook-card-title { font-size: var(--text-lg); font-weight: 800; line-height: 1.25; }
+.cook-card-meta { color: var(--color-ink-muted); font-size: var(--text-sm); }
+.cook-card-need { color: var(--color-missing); font-weight: 800; font-size: var(--text-lg); }
+.cook-card-swap { color: var(--color-ink-muted); font-size: var(--text-sm); font-style: italic; }
+
+.cook-state { max-width: 560px; margin: var(--space-5) auto; text-align: center; }
+.cook-state .btn { margin-top: var(--space-2); }
+.cook-hint { margin-top: 0; margin-bottom: var(--space-5); }
+
+.cook-skeleton { background: var(--color-border-soft); border-radius: var(--radius-sm); animation: cook-pulse 1.2s ease-in-out infinite; }
+.cook-skeleton-card { cursor: default; }
+.cook-skeleton-heading { height: 32px; width: 180px; margin: var(--space-5) 0 var(--space-3); border-radius: var(--radius-sm); background: var(--color-border-soft); }
+.cook-skeleton-line { height: 18px; margin-bottom: var(--space-2); }
+.cook-skeleton-short { width: 60%; }
+@keyframes cook-pulse { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .cook-skeleton { animation: none; } }
+
+/* Cook view */
+.cook-back { margin-bottom: var(--space-4); }
+.cook-view-title { font-size: var(--text-3xl); margin-bottom: var(--space-4); }
+.cook-view-media {
+  display: block; width: 100%; max-width: 720px; aspect-ratio: 16 / 9;
+  object-fit: cover; border-radius: var(--radius-lg); margin-bottom: var(--space-3);
+}
+.cook-view-media.cook-card-placeholder {
+  /* .cook-view-media sets display:block; without this the letter sits top-left */
+  display: flex; align-items: center; justify-content: center;
+  /* no photo: a slim band, so ingredients and steps stay near the top */
+  font-size: var(--text-2xl); height: 64px; aspect-ratio: auto;
+}
+@media (max-width: 599px) {
+  .cook-view-media { max-height: 33vh; }
+}
+.cook-view-meta { color: var(--color-ink-muted); font-size: var(--text-lg); margin-bottom: var(--space-4); }
+.cook-view-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-5); }
+@media (min-width: 900px) { .cook-view-cols { grid-template-columns: minmax(280px, 1fr) 2fr; align-items: start; } }
+
+.cook-ing-list { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+.cook-ing {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-soft);
+  font-size: var(--text-lg);
+}
+.cook-ing-measure { font-weight: 700; }
+.cook-ing-optional { color: var(--color-ink-muted); font-size: var(--text-base); }
+.cook-ing .badge { flex-shrink: 0; }
+.cook-missing {
+  background: var(--color-missing-bg); border: 2px solid var(--color-missing);
+  border-radius: var(--radius-md); padding: var(--space-3) var(--space-4) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.cook-missing .cook-ing { border-bottom-color: var(--color-missing); }
+.cook-missing .cook-ing-list { margin-bottom: var(--space-3); }
+.cook-missing-title { margin: 0 0 var(--space-1); font-weight: 800; color: var(--color-missing); }
+
+.cook-steps { list-style: none; margin: 0; padding: 0; }
+.cook-steps li { counter-increment: cook-step; margin-bottom: var(--space-3); }
+.cook-steps { counter-reset: cook-step; }
+.cook-step {
+  display: block; position: relative; width: 100%; min-height: var(--tap);
+  text-align: left; cursor: pointer;
+  padding: var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 3rem);
+  background: var(--color-surface); color: var(--color-ink);
+  border: 2px solid var(--color-border-soft); border-radius: var(--radius-md);
+  font-size: 1.25rem; line-height: 1.6;
+}
+.cook-step::before {
+  content: counter(cook-step); position: absolute; left: var(--space-4); top: var(--space-4);
+  width: 2rem; height: 2rem; border-radius: var(--radius-pill);
+  background: var(--color-ink); color: var(--color-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-base); font-weight: 800; line-height: 1;
+}
+.cook-step-done { background: var(--color-bg); color: var(--color-ink-muted); text-decoration: line-through; }
+.cook-step-done::before { background: var(--color-have); color: var(--color-on-have); content: "✓"; }
+
+.cook-source { margin-top: var(--space-5); color: var(--color-ink-muted); font-size: var(--text-sm); }
+
+.cook-card-uses { color: var(--color-have); font-size: var(--text-sm); font-weight: 600; }
+
+/* Phones: compact horizontal cards so a screenful of recipes is visible */
+@media (max-width: 599px) {
+  .cook-grid { gap: var(--space-3); }
+  .cook-card { flex-direction: row; align-items: stretch; }
+  .cook-card-media { aspect-ratio: auto; width: 96px; min-height: 96px; flex-shrink: 0; }
+  .cook-card-placeholder { font-size: var(--text-2xl); }
+  .cook-card-body { padding: var(--space-3); min-width: 0; gap: 2px; }
+  .cook-card-title { font-size: var(--text-base); }
+  .cook-card-need { font-size: var(--text-base); }
+  .cook-skeleton-card .cook-card-media { height: 96px; }
+}

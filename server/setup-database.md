@@ -53,10 +53,18 @@ npx prisma generate
 
 ## Step 6: Apply Database Schema
 ```bash
-npx prisma db push
+npx prisma migrate deploy
 ```
 
 **Expected Result:** All tables created successfully
+
+## Step 6b: Load the recipe base
+```bash
+npm run seed            # REQUIRED: vocabulary + 21 starter recipes (+ 30 test-fixture recipes unless NODE_ENV=production; SEED_FIXTURE=1 forces them)
+npm run import:mealdb   # optional: fetch ~790 TheMealDB recipes (needs internet; free test key = development use); `-- --file x.json` reads a file instead
+```
+
+**Expected Result:** counts of created/updated recipes; running either again changes nothing.
 
 ## Step 7: Start Server
 ```bash
@@ -94,3 +102,23 @@ brew services restart postgresql@15
 lsof -i :5432
 ```
 Kill conflicting processes or use different port.
+
+## Existing database created with `db push` (e.g. the live Render/Neon DB)
+
+Tables already exist but Prisma has no migration history. `render.yaml` runs `prisma migrate deploy` on start, which fails with P3005 on such a database. Do these in order, all from `server/` with `DATABASE_URL` and `DIRECT_URL` pointing at the live database:
+
+1. **Before merging to main:** mark the first migration as already applied.
+   ```bash
+   npx prisma migrate resolve --applied 20260101000000_init
+   ```
+2. **Merge and deploy.** Start-up runs `migrate deploy`, which applies `20260102000000_recipe_base`.
+3. **Seed the vocabulary and starter recipes, skipping test fixtures:**
+   ```bash
+   NODE_ENV=production npm run seed
+   ```
+4. **Optional:** import the TheMealDB recipes.
+   ```bash
+   npm run import:mealdb
+   ```
+
+Existing pantry rows survive this (verified on a copy of the data).

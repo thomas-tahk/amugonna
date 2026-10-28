@@ -1,12 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { prisma } from './lib/database.js';
 import authRoutes from './routes/auth.js';
 import ingredientRoutes from './routes/ingredients.js';
 import recipeRoutes from './routes/recipes.js';
-
-dotenv.config();
 
 export const app = express();
 

@@ -7,12 +7,12 @@ import { loadMealFile } from '../src/lib/recipes/file.js';
 import { syncVocabulary, upsertRecipe } from '../src/lib/recipes/upsert.js';
 import { mapMealDbMeal } from '../src/lib/recipes/mealdb.js';
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+const hasDb = process.env.TEST_DB_ENABLED === '1';
 
 if (!hasDb) {
   console.warn(
-    '[server tests] DATABASE_URL is not set: skipping DB integration tests (recipe base). ' +
-      'Set DATABASE_URL (and run `npx prisma migrate deploy`) to run them.'
+    '[server tests] TEST_DATABASE_URL is not set: skipping DB integration tests (recipe base). ' +
+      'Set TEST_DATABASE_URL (a database whose name contains "test"; run `npx prisma migrate deploy`) to run them.'
   );
 }
 
@@ -20,7 +20,7 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe.skipIf(!hasDb)('recipe base (needs a migrated DATABASE_URL)', () => {
+describe.skipIf(!hasDb)('recipe base (needs a migrated TEST_DATABASE_URL)', () => {
   let systemUserId: number;
 
   const counts = async () => ({

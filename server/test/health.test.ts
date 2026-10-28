@@ -3,12 +3,12 @@ import request from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/lib/database.js';
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+const hasDb = process.env.TEST_DB_ENABLED === '1';
 
 if (!hasDb) {
   console.warn(
-    '[server tests] DATABASE_URL is not set: skipping DB integration tests (GET /health). ' +
-      'Set DATABASE_URL (and run `npx prisma migrate deploy`) to run them.'
+    '[server tests] TEST_DATABASE_URL is not set: skipping DB integration tests (GET /health). ' +
+      'Set TEST_DATABASE_URL (a database whose name contains "test"; run `npx prisma migrate deploy`) to run them.'
   );
 }
 
@@ -24,7 +24,7 @@ describe('app smoke', () => {
   });
 });
 
-describe.skipIf(!hasDb)('GET /health (needs DATABASE_URL)', () => {
+describe.skipIf(!hasDb)('GET /health (needs TEST_DATABASE_URL)', () => {
   it('reports the database as connected', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);

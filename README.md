@@ -43,11 +43,26 @@ npm run dev
 | Command | What it does |
 |---|---|
 | `npm run dev` | Client and server in watch mode |
-| `npm test` | Server tests, then client tests (Vitest). Server DB tests use `DATABASE_URL` (point it at a test DB, not your dev DB; `TEST_DATABASE_URL` overrides it) and are skipped when neither is set |
+| `npm test` | Server tests, then client tests (Vitest). Server DB tests run only when `TEST_DATABASE_URL` is set; otherwise they are skipped. See below |
 | `npm run build` | Builds client, then server (`prisma generate && tsc`) |
 | `npm run lint -w client` | ESLint on the client |
 
-CI (`.github/workflows/ci.yml`) runs `npm ci`, `prisma migrate deploy`, test, build and lint against a Postgres 16 service.
+### Running the DB tests
+
+The DB-backed server tests never use `DATABASE_URL` (which `server/.env` may point at a real database). They run only against `TEST_DATABASE_URL`, and the config refuses to start if that database name does not contain `test`:
+
+```bash
+createdb amugonna_test
+cd server
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test \
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test \
+  npx prisma migrate deploy && npm run seed        # the seed is optional; tests seed what they need
+cd .. && TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/amugonna_test npm test
+```
+
+With `TEST_DATABASE_URL` unset, `npm test` still runs the pure unit tests and skips the DB suites with a warning.
+
+CI (`.github/workflows/ci.yml`) runs `npm ci`, `prisma migrate deploy`, test, build and lint against a Postgres 16 service, with `TEST_DATABASE_URL` pointing at its `amugonna_test` database. The server refuses to start when `JWT_SECRET` is unset.
 
 Existing database created with `db push` (e.g. the live Render/Neon DB)? See [server/setup-database.md](server/setup-database.md) before deploying.
 

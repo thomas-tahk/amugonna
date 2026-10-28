@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalize, resolve } from './index.js';
+import { canonicalize, resolve, satisfies } from './index.js';
 
 /**
  * Coverage of the real TheMealDB catalogue (docs/chief/research/mealdb-live-2026-10-28.md):
@@ -131,7 +131,6 @@ const TWICE = [
   'goose fat',
   'gouda cheese',
   'grand marnier',
-  'ground sugar',
   'hispi cabbage',
   'horseradish',
   'hummus',
@@ -253,6 +252,7 @@ const NOT_INGREDIENTS = new Set([
   'sazon goya', // branded blend with no stable composition
   'codfish bulljaw', // not a recognisable ingredient name (dish-specific)
   'vegetable millk', // typo that could mean milk or stock
+  'ground sugar', // ambiguous (caster? icing?); deliberately left unknown rather than a false match
 ]);
 
 describe('TheMealDB coverage', () => {
@@ -272,5 +272,52 @@ describe('TheMealDB coverage', () => {
     expect(canonicalize('Challots')).toBe('shallot');
     expect(canonicalize('1 tbsp Ground Nut Oil')).toBe('peanut oil');
     expect(canonicalize('Golden Caster Sugar')).toBe('caster sugar');
+  });
+});
+
+describe('TheMealDB vocabulary: no false "have"/"swap" between different ingredients', () => {
+  // [pantry item, recipe needs] -> must be missing
+  const notInterchangeable: [string, string][] = [
+    ['bean sprout', 'mung bean'],
+    ['mung bean', 'bean sprout'],
+    ['flour', 'rice flour'],
+    ['rice flour', 'flour'],
+    ['chilli', 'ancho chilli'],
+    ['cream', 'clotted cream'],
+    ['sushi rice', 'sticky rice'],
+    ['rice', 'glutinous rice'],
+    ['rice paper', 'spring roll wrapper'],
+    ['tapioca', 'tapioca starch'],
+    ['tapioca starch', 'tapioca'],
+    ['fenugreek', 'fenugreek leaf'],
+    ['fenugreek leaf', 'fenugreek'],
+    ['horseradish', 'horseradish sauce'],
+    ['horseradish sauce', 'horseradish'],
+    ['caster sugar', 'ground sugar'],
+    ['mirin', 'rice cooking wine'],
+    ['rye flour', 'flour'],
+    ['flour', 'rye flour'],
+    ['sugar', 'vanilla sugar'],
+    ['sugar', 'palm sugar'],
+    ['rice', 'spanish rice'],
+    ['pumpkin', 'pumpkin pie filling'],
+  ];
+  it.each(notInterchangeable)('pantry %s does not cover recipe %s', (pantry, need) => {
+    expect(satisfies([resolve(pantry).canonical], resolve(need).canonical).status).toBe('missing');
+  });
+
+  it('cotija is a cheese swap, not a have', () => {
+    expect(satisfies(['cheese'], 'cotija').status).toBe('swap');
+  });
+
+  it('kept equivalences', () => {
+    expect(resolve('cotija cheese').canonical).toBe('cotija');
+    expect(resolve('cotija').entry?.parent).toBe('cheese');
+    expect(resolve('romano cheese').canonical).toBe('pecorino');
+    expect(resolve('rice cooking wine').canonical).toBe('rice wine');
+    expect(resolve('methi').canonical).toBe('fenugreek leaf');
+    expect(resolve('creamed horseradish').canonical).toBe('horseradish sauce');
+    expect(resolve('tapioca flour').canonical).toBe('tapioca starch');
+    expect(resolve('sticky rice').canonical).toBe('glutinous rice');
   });
 });

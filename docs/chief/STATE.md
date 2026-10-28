@@ -1,9 +1,9 @@
 # Chief state
-Vision: docs/chief/vision.md (Shape round 1; done-gate draft unconfirmed)
-Phase: Research → Plan — AI role decided (photo→pantry + mood re-rank); next: research recipe data sources (license, size, structure), then Plan
-Research: docs/chief/research/current-state.md, docs/chief/research/ai-and-procurement.md, docs/chief/research/recipe-data.md (primary sites blocked in sandbox; many facts UNVERIFIED; no dataset measured)
-Key finding: dataset is the blocker (21 recipes, 40 ingredients, exact-name match → 1 match for a normal pantry). Fix data + fuzzy matching before any AI question matters.
-Also: postinstall scripts/sync-docs.js rewrites docs with stale OpenAI text; no prisma migrations dir; server build needs prisma generate; local server/.env holds a live-looking OpenAI key (told owner to revoke)
-Next action: research recipe data source options; then write milestone plan for his approval
-Waiting on him: done-gate confirmation (draft in vision.md) at plan approval
-Updated: 2026-10-26
+Vision: docs/chief/vision.md (done-gate revised + owner answers 2026-10-28)
+Phase: Build — M1 "Cook from my pantry" (branch m1-cook-from-pantry, off chief; PR into main at the end)
+Plan: docs/milestones/M1.md; GitHub milestone M1 = issues #2-#11. Pre-authorised by the owner's scheduled prompt of 2026-10-28 (counts as plan approval).
+Next action: batch 1 = #2 foundation, #3 normalizer, #4 design system
+Waiting on him: nothing yet
+Open questions: docs/questions/M1.md
+Network note: cloud sandbox blocks themealdb.com and wikibooks.org; live import runs in GitHub Actions (#10)
+Updated: 2026-10-28

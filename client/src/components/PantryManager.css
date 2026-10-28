@@ -10,7 +10,7 @@
 }
 
 .pantry-header h2 {
-  color: #2563eb;
+  color: var(--color-primary-text);
   margin-bottom: 8px;
   font-weight: 600;
 }
@@ -95,20 +95,20 @@
   margin-bottom: 16px;
 }
 
-.form-group {
+.pantry-manager .form-group {
   display: flex;
   flex-direction: column;
 }
 
-.form-group label {
+.pantry-manager .form-group label {
   font-size: 14px;
   font-weight: 500;
   color: #374151;
   margin-bottom: 6px;
 }
 
-.form-group input,
-.form-group select {
+.pantry-manager .form-group input,
+.pantry-manager .form-group select {
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -116,10 +116,10 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.pantry-manager .form-group input:focus,
+.pantry-manager .form-group select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -129,7 +129,7 @@
   margin-top: 20px;
 }
 
-.btn {
+.pantry-manager .btn {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -139,25 +139,25 @@
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.btn:hover {
+.pantry-manager .btn:hover {
   transform: translateY(-1px);
 }
 
-.btn-primary {
-  background-color: #3b82f6;
+.pantry-manager .btn-primary {
+  background-color: var(--color-primary);
   color: white;
 }
 
-.btn-primary:hover {
-  background-color: #2563eb;
+.pantry-manager .btn-primary:hover {
+  background-color: var(--color-primary-hover);
 }
 
-.btn-secondary {
+.pantry-manager .btn-secondary {
   background-color: #6b7280;
   color: white;
 }
 
-.btn-secondary:hover {
+.pantry-manager .btn-secondary:hover {
   background-color: #4b5563;
 }
 
@@ -237,7 +237,7 @@
 }
 
 .ingredient-info .ingredient-added {
-  color: #9ca3af;
+  color: var(--color-ink-muted);
   font-size: 11px;
 }
 
@@ -296,87 +296,3 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .pantry-manager {
-    color: #e2e8f0;
-  }
-  
-  .pantry-header h2 {
-    color: #3b82f6;
-  }
-  
-  .pantry-header p {
-    color: #94a3b8;
-  }
-  
-  .add-ingredient-section,
-  .ingredients-list {
-    color: #e2e8f0;
-  }
-  
-  .add-ingredient-form {
-    background: #1e293b;
-    border-color: #334155;
-  }
-  
-  .form-group label {
-    color: #e2e8f0;
-  }
-  
-  .form-group input,
-  .form-group select {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
-  
-  .form-group input:focus,
-  .form-group select:focus {
-    border-color: #60a5fa;
-  }
-  
-  .ingredient-card {
-    background: #1e293b;
-    border-color: #334155;
-  }
-  
-  .ingredient-card:hover {
-    border-color: #475569;
-  }
-  
-  .ingredient-info .ingredient-name {
-    color: #f1f5f9;
-  }
-  
-  .ingredient-info .ingredient-category {
-    color: #94a3b8;
-  }
-  
-  .ingredient-info .ingredient-quantity {
-    color: #10b981;
-  }
-  
-  .ingredient-info .ingredient-expiration {
-    color: #f87171;
-  }
-  
-  .ingredient-info .ingredient-added {
-    color: #6b7280;
-  }
-  
-  .empty-pantry {
-    background: #1e293b;
-    color: #94a3b8;
-  }
-  
-  .auth-required {
-    background: #1e293b;
-    color: #94a3b8;
-  }
-  
-  .error-message {
-    background: #991b1b;
-    border-color: #dc2626;
-    color: #fecaca;
-  }
-}

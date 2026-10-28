@@ -1,7 +1,7 @@
 # Chief state
 Vision: docs/chief/vision.md (done-gate revised + owner answers 2026-10-28)
 Phase: Review — M1 "Cook from my pantry" built on branch m1-cook-from-pantry (off chief); PR into main is the hand-off
-Report: docs/milestones/M1.md (how to try it, evidence, 6 decisions)
+Report: docs/milestones/M1.md (how to try it, evidence, 6 decisions); PR https://github.com/thomas-tahk/amugonna/pull/26
 Next action: owner plays M1 and answers the decisions; then fill scorecard escaped bugs / guesses kept and route (fixes -> Build, new direction -> Plan M2)
 Waiting on him: the 6 decisions in docs/milestones/M1.md (first: run `prisma migrate resolve` on the live DB before merging)
 Open questions: docs/questions/M1.md

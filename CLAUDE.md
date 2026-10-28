@@ -47,25 +47,18 @@
 - User accounts and personalized experience
 
 ## Current Status
-- **Database foundation fully operational** - PostgreSQL + Prisma working with enhanced recipe schema
-- **Complete JWT-based authentication system** - Registration, login, profile management tested and working
-- **Ingredient management API** - Search, user pantry CRUD operations, database seeding
-- **Frontend foundation scaffold** - React components, TypeScript types, API services, authentication context
-- **AI Recipe Generation System** - OpenAI-powered recipe creation from user's pantry ingredients
-- **Complete recipe management** - Generate, view, save, and manage AI-created recipes
-- Server-database connectivity verified via health endpoint
-- **Ready for production deployment and testing**
-- Documentation structure established and maintained
+- **No AI in the app.** The OpenAI recipe generator was removed; ignore any older text saying otherwise.
+- Working: JWT auth, ingredient search, pantry CRUD, recipe CRUD, pantry-based suggestions (exact-ingredient scoring), 21 seed recipes.
+- Not built: ingredient normalization, dietary-restriction filtering, meal planning, shopping lists, large recipe catalogue.
+- **Milestone 1 ("Cook from my pantry") in progress** - see `docs/milestones/M1.md` for plan and issues.
+- Tests: Vitest in both workspaces; CI in `.github/workflows/ci.yml`; schema via Prisma migrations in `server/prisma/migrations/`.
 
 ## Development Status
-- **Backend**: Complete with AI recipe generation (4 features)
-- **Frontend**: Complete with recipe generation UI and pantry management (4 features)
-- **Database**: Enhanced schema with AI recipe fields, ready for seeding
-- **Authentication**: Complete and integrated
-- **AI Integration**: OpenAI-powered recipe generation ready (requires OPENAI_API_KEY)
-- **Recipe Management**: Full CRUD operations for AI-generated recipes
+- **Backend**: auth, ingredients, pantry, recipes, suggestions endpoints
+- **Frontend**: auth form, pantry manager, recipe list/detail/form
+- **Database**: PostgreSQL + Prisma, baseline migration `init`
+- **Docs**: hand-maintained (the old auto-sync script is gone; nothing rewrites docs)
 
-*Last updated: 9/10/2025*
 ## Development Approach Notes
 - **Token Efficiency**: Switched to guided development approach to reduce token consumption
 - **Code Ownership**: User-led implementation with Claude providing structure and guidance
@@ -73,38 +66,11 @@
 - **Incremental Development**: Small, testable pieces rather than comprehensive generation
 
 ## Next Session Pickup Instructions
-
-### Immediate Next Steps (Session Resume):
-1. **Test Backend APIs First**
-   - Run `npm run seed` in `/server` directory to populate database
-   - Test ingredient search: `curl "http://localhost:3001/api/ingredients?search=chicken"`
-   - Test authentication endpoints (registration/login) 
-   - Verify all backend functionality before frontend work
-
-2. **Frontend Testing Strategy**
-   - Start development server: `npm run dev` in `/client` directory
-   - Test authentication flow in browser
-   - Verify ingredient search and pantry management
-   - Debug any integration issues
-
-3. **Guided Development Approach**
-   - Claude provides step-by-step guidance and code structure
-   - User implements code to reduce token consumption
-   - Focus on incremental testing and validation
-   - Small, manageable pieces rather than comprehensive generation
-
-### Current Working Directory
-- **Server**: `/Users/tnt/Projects/amugonna/server` (backend development)
-- **Client**: `/Users/tnt/Projects/amugonna/client` (frontend development)
-- **Root**: `/Users/tnt/Projects/amugonna` (documentation and git operations)
-
-### Development Status
-- **Backend**: 100% complete with AI recipe generation
-- **Frontend**: Complete with recipe generation UI and pantry management
-- **Database**: Enhanced schema with AI recipe fields, ready for seeding with `npm run seed`
-- **Authentication**: Complete and integrated
-- **AI Integration**: OpenAI-powered recipe generation ready (requires OPENAI_API_KEY)
-- **Recipe Management**: Full CRUD operations for AI-generated recipes
+1. Read `docs/milestones/M1.md` for the current plan.
+2. Install: `npm ci --ignore-scripts` (repo root), then `cd server && npx prisma generate`.
+3. Migrate: `cd server && npx prisma migrate deploy` (needs `DATABASE_URL` and `DIRECT_URL`).
+4. Test: `npm test`. Build: `npm run build`. Lint client: `npm run lint -w client`.
+5. Run: `npm run dev`.
 
 ## Next Steps
 See `/docs/ROADMAP.md` for detailed development priorities and planning.

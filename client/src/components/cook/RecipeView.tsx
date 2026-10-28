@@ -44,7 +44,7 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [done, setDone] = useState<Set<number>>(new Set());
-  const [toast, setToast] = useState<string | null>(null);
+  const [copyLabel, setCopyLabel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,29 +60,37 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   }, [recipeId, attempt]);
 
   // Keep the screen awake while cooking; silently skip when unsupported.
+  // Browsers drop the lock when the tab is hidden, so re-acquire on return.
   useEffect(() => {
     let sentinel: WakeLockSentinelLike | null = null;
     let closed = false;
     const wl = (navigator as NavWithWakeLock).wakeLock;
-    if (wl) {
+    if (!wl) return;
+    const acquire = () => {
       wl.request('screen')
         .then((s) => {
           if (closed) void s.release();
           else sentinel = s;
         })
         .catch(() => {});
-    }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !closed) acquire();
+    };
+    acquire();
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       closed = true;
-      if (sentinel) void sentinel.release().catch(() => {});
+      document.removeEventListener('visibilitychange', onVisible);
+      if (sentinel) void Promise.resolve(sentinel.release()).catch(() => {});
     };
   }, []);
 
   useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2000);
+    if (!copyLabel) return;
+    const t = setTimeout(() => setCopyLabel(null), 2000);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [copyLabel]);
 
   const back = (
     <button type="button" className="btn btn-secondary cook-back" onClick={onBack}>
@@ -134,9 +142,9 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   const copyMissing = async () => {
     try {
       await navigator.clipboard.writeText(missing.map((m) => m.name).join('\n'));
-      setToast('Copied');
+      setCopyLabel('Copied ✓');
     } catch {
-      setToast("Couldn't copy");
+      setCopyLabel("Couldn't copy");
     }
   };
 
@@ -174,8 +182,8 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
                   <IngredientRow key={i.canonical + i.name} ing={i} />
                 ))}
               </ul>
-              <button type="button" className="btn btn-secondary" onClick={copyMissing}>
-                Copy missing items
+              <button type="button" className="btn btn-secondary" onClick={copyMissing} aria-live="polite">
+                {copyLabel ?? 'Copy missing items'}
               </button>
             </div>
           )}
@@ -217,11 +225,6 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
             source
           )}
         </p>
-      )}
-      {toast && (
-        <div className="cook-toast" role="status">
-          {toast}
-        </div>
       )}
     </article>
   );

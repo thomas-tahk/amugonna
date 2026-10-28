@@ -94,10 +94,17 @@
 .cook-step-done::before { background: var(--color-have); color: var(--color-on-have); content: "✓"; }
 
 .cook-source { margin-top: var(--space-5); color: var(--color-ink-muted); font-size: var(--text-sm); }
-.cook-toast {
-  position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--space-4));
-  background: var(--color-ink); color: var(--color-bg);
-  padding: var(--space-3) var(--space-5); border-radius: var(--radius-pill);
-  font-weight: 700; box-shadow: var(--shadow-2); z-index: 20;
+
+.cook-card-uses { color: var(--color-have); font-size: var(--text-sm); font-weight: 600; }
+
+/* Phones: compact horizontal cards so a screenful of recipes is visible */
+@media (max-width: 599px) {
+  .cook-grid { gap: var(--space-3); }
+  .cook-card { flex-direction: row; align-items: stretch; }
+  .cook-card-media { aspect-ratio: auto; width: 96px; min-height: 96px; flex-shrink: 0; }
+  .cook-card-placeholder { font-size: var(--text-2xl); }
+  .cook-card-body { padding: var(--space-3); min-width: 0; gap: 2px; }
+  .cook-card-title { font-size: var(--text-base); }
+  .cook-card-need { font-size: var(--text-base); }
+  .cook-skeleton-card .cook-card-media { height: 96px; }
 }

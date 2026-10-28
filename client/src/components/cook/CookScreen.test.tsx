@@ -85,6 +85,7 @@ describe('CookScreen results', () => {
     expect(await screen.findByRole('heading', { name: 'Cook now (2)' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '1 ingredient away (2)' })).toBeInTheDocument();
     expect(screen.getByText('Need: lemon')).toBeInTheDocument();
+    expect(screen.getAllByText('uses 5 of your items').length).toBeGreaterThan(0);
     expect(screen.getByText('using cheddar for parmesan')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /2 ingredients away \(1\)/ })).toHaveAttribute('aria-expanded', 'false');
   });
@@ -163,7 +164,7 @@ describe('Cook view', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     await userEvent.click(screen.getByRole('button', { name: 'Copy missing items' }));
     expect(writeText).toHaveBeenCalledWith('lemon\nbasil');
-    expect(await screen.findByText('Copied')).toBeInTheDocument();
+    expect(await screen.findByText('Copied ✓')).toBeInTheDocument();
   });
 
   it('Back returns to results', async () => {
@@ -193,6 +194,33 @@ describe('Cook view', () => {
     } finally {
       Reflect.deleteProperty(navigator, 'wakeLock');
     }
+  });
+
+  it('re-acquires the wake lock when the tab becomes visible again', async () => {
+    mockFetch();
+    const request = vi.fn().mockResolvedValue({ release: vi.fn().mockResolvedValue(undefined) });
+    Object.defineProperty(navigator, 'wakeLock', { value: { request }, configurable: true });
+    try {
+      await openLemon();
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    } finally {
+      Reflect.deleteProperty(navigator, 'wakeLock');
+    }
+  });
+
+  it('scrolls to top on open and restores scroll on back', async () => {
+    mockFetch();
+    const scrollTo = vi.fn();
+    vi.stubGlobal('scrollTo', scrollTo);
+    Object.defineProperty(window, 'scrollY', { value: 420, configurable: true });
+    await openLemon();
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    await userEvent.click(screen.getByRole('button', { name: /Back/ }));
+    await screen.findByRole('heading', { name: 'Cook now (2)' });
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 420);
+    Reflect.deleteProperty(window, 'scrollY');
   });
 
   it('works without wake lock support', async () => {

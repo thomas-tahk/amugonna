@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cookApi } from '../../services/cookApi';
 import type { RecipeMatch, Suggestions } from '../../types/cook';
 import type { TabId } from '../shell/tabs';
@@ -27,6 +27,7 @@ const RecipeCard: React.FC<{ recipe: RecipeMatch; onOpen: (id: number) => void }
       <span className="cook-card-body">
         <span className="cook-card-title">{recipe.title}</span>
         {meta(recipe) && <span className="cook-card-meta">{meta(recipe)}</span>}
+        {recipe.usedCount > 0 && <span className="cook-card-uses">uses {recipe.usedCount} of your items</span>}
         {recipe.missing.length > 0 && (
           <span className="cook-card-need">Need: {recipe.missing.map((m) => m.name).join(', ')}</span>
         )}
@@ -76,10 +77,22 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
 
   useEffect(load, [load]);
 
+  const savedScroll = useRef<number | null>(null);
+
   const open = useCallback((id: number) => {
+    savedScroll.current = window.scrollY;
     window.history.pushState({ cookRecipe: id }, '');
     setOpenId(id);
+    window.scrollTo(0, 0);
   }, []);
+
+  // Back to results: restore where the list was.
+  useLayoutEffect(() => {
+    if (openId === null && savedScroll.current !== null) {
+      window.scrollTo(0, savedScroll.current);
+      savedScroll.current = null;
+    }
+  }, [openId]);
 
   useEffect(() => {
     const onPop = () => setOpenId(null);

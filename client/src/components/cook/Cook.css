@@ -49,7 +49,11 @@
   display: block; width: 100%; max-width: 720px; aspect-ratio: 16 / 9;
   object-fit: cover; border-radius: var(--radius-lg); margin-bottom: var(--space-3);
 }
-.cook-view-media.cook-card-placeholder { font-size: 4rem; height: auto; }
+.cook-view-media.cook-card-placeholder {
+  /* .cook-view-media sets display:block; without this the letter sits top-left */
+  display: flex; align-items: center; justify-content: center;
+  font-size: 4rem; height: auto;
+}
 .cook-view-meta { color: var(--color-ink-muted); font-size: var(--text-lg); margin-bottom: var(--space-4); }
 .cook-view-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-5); }
 @media (min-width: 900px) { .cook-view-cols { grid-template-columns: minmax(280px, 1fr) 2fr; align-items: start; } }

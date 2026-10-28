@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cookApi } from '../../services/cookApi';
+import { pantrySync } from '../../services/pantrySync';
 import type { RecipeMatch, Suggestions } from '../../types/cook';
 import type { TabId } from '../shell/tabs';
 import RecipeView from './RecipeView';
@@ -72,14 +73,29 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
     const mine = ++latest.current;
     setLoading(true);
     setError(null);
-    cookApi
-      .getSuggestions()
+    // Wait for any pantry save still in flight (e.g. from a Kitchen that just unmounted).
+    pantrySync
+      .idle()
+      .then(() => cookApi.getSuggestions())
       .then((d) => mine === latest.current && setData(d))
       .catch((e: Error) => mine === latest.current && setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
   }, []);
 
   useEffect(load, [load]);
+
+  // Safety net: while showing "kitchen is empty", look again when the person comes back to this tab/window.
+  const empty = !loading && !error && data?.pantrySize === 0;
+  useEffect(() => {
+    if (!empty) return;
+    const again = () => document.visibilityState !== 'hidden' && load();
+    window.addEventListener('focus', again);
+    document.addEventListener('visibilitychange', again);
+    return () => {
+      window.removeEventListener('focus', again);
+      document.removeEventListener('visibilitychange', again);
+    };
+  }, [empty, load]);
 
   const savedScroll = useRef<number | null>(null);
 

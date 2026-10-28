@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { kitchenApi } from '../../services/kitchenApi';
+import { pantrySync } from '../../services/pantrySync';
 import type { UserIngredient } from '../../types';
 import type { CommonData, SuggestItem } from '../../types/kitchen';
 import type { TabId } from '../shell/tabs';
@@ -63,7 +64,7 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
 
   const enqueue = <T,>(job: () => Promise<T>): Promise<T> => {
     queued.current++;
-    const run = chain.current.then(job).finally(() => {
+    const run = pantrySync.track(chain.current.then(job)).finally(() => {
       queued.current--;
       if (alive.current && queued.current === 0 && !timer.current && pendingRef.current.size === 0) refreshCount();
     });
@@ -86,7 +87,7 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   }, [refreshCount]);
 
   // Sends the queued taps. Entries that already match the server are dropped; an empty change sends nothing.
-  const flushJob = async (): Promise<boolean> => {
+  const flushJob = async (keepalive = false): Promise<boolean> => {
     const snapshot: Pending = new Map(pendingRef.current);
     const haveIds = new Set(serverRef.current.map((h) => h.id));
     const changes = [...snapshot].filter(([id, p]) => p.want !== haveIds.has(id));
@@ -105,7 +106,7 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
       return true;
     }
     try {
-      const res = await kitchenApi.bulk({ ...(add.length && { add }), ...(remove.length && { remove }) });
+      const res = await kitchenApi.bulk({ ...(add.length && { add }), ...(remove.length && { remove }) }, { keepalive });
       setServerList(toHave(res.ingredients));
       if (alive.current) setActionError(null);
       settle();
@@ -122,6 +123,25 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
     timer.current = null;
     return enqueue(flushJob);
   };
+
+  // Page being closed, reloaded or hidden with taps still in the debounce window: send them now, bypassing
+  // the chain, with keepalive so the browser finishes the request after the page is gone.
+  useEffect(() => {
+    const flushOnLeave = () => {
+      if (!timer.current) return;
+      clearTimeout(timer.current);
+      timer.current = null;
+      void pantrySync.track(flushJob(true));
+    };
+    const onVisibility = () => document.visibilityState === 'hidden' && flushOnLeave();
+    window.addEventListener('pagehide', flushOnLeave);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flushOnLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     alive.current = true;

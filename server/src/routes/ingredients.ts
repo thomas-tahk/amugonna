@@ -386,10 +386,13 @@ router.get('/suggest', async (req, res) => {
     if (items.length < limit) {
       // DB-only ingredients (user-created / imported) come after the vocabulary hits
       const taken = new Set(items.map((i) => i.id));
+      // only ingredients a public recipe uses: other users' private free-text entries stay private
+      const like = q.replace(/[\\%_]/g, '\\$&');
       const extra = await prisma.ingredient.findMany({
         where: {
           id: { notIn: [...taken] },
-          OR: [{ name: { contains: q, mode: 'insensitive' } }, { canonical: { contains: q, mode: 'insensitive' } }]
+          recipeIngredients: { some: { recipe: { isPublic: true } } },
+          OR: [{ name: { contains: like, mode: 'insensitive' } }, { canonical: { contains: like, mode: 'insensitive' } }]
         },
         orderBy: { name: 'asc' },
         take: limit - items.length,

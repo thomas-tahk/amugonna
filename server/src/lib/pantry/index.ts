@@ -28,19 +28,30 @@ function typoFix(canonical: string) {
   return keys.some((k) => editDistance(canonical, k.toLowerCase()) <= max) ? getEntry(top.canonical) : undefined;
 }
 
+export interface Piece {
+  canonical: string;
+  name: string;
+  known: boolean;
+}
+
+/** The one place free text becomes an ingredient identity: resolve(), then typo-fix when unknown. */
+export function resolvePiece(input: string): Piece | undefined {
+  const r = resolve(input);
+  if (!r.canonical) return undefined;
+  const entry = r.known ? r.entry : typoFix(r.canonical);
+  if (entry) return { canonical: entry.canonical, name: entry.name, known: true };
+  return { canonical: r.canonical, name: titleCase(r.canonical), known: false };
+}
+
 /** Split free text into trimmed pieces on commas, newlines and semicolons, then " and " unless the whole piece is a known item. */
 export function parsePantryText(text: string): ParsedPiece[] {
   const out: ParsedPiece[] = [];
   const seen = new Set<string>();
   const push = (input: string) => {
-    const r = resolve(input);
-    if (!r.canonical) return;
-    const fixed = r.known ? undefined : typoFix(r.canonical);
-    const canonical = fixed?.canonical ?? r.canonical;
-    if (seen.has(canonical)) return;
-    seen.add(canonical);
-    const entry = fixed ?? r.entry;
-    out.push({ input, name: entry?.name ?? titleCase(canonical), canonical, known: Boolean(entry) });
+    const p = resolvePiece(input);
+    if (!p || seen.has(p.canonical)) return;
+    seen.add(p.canonical);
+    out.push({ input, ...p });
   };
   for (const piece of text.split(/[,;\n\r]+/).map((s) => s.trim()).filter(Boolean)) {
     if (!/\sand\s/i.test(piece) || resolve(piece).known) {
@@ -58,7 +69,8 @@ export interface BulkChange {
   removeIds: number[];
 }
 
-const isId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
+const MAX_ID = 2147483647; // Postgres INT4
+const isId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0 && v <= MAX_ID;
 
 /** Throws PantryInputError with a caller-readable message on any invalid body. */
 export function validateBulk(body: unknown): BulkChange {
@@ -112,30 +124,38 @@ export async function applyBulk(tx: Prisma.TransactionClient, userId: number, ch
   const idsToAdd = new Set(change.addIds);
   const byCanonical = new Map<string, { id: number; name: string; canonical: string }>();
   const createdCanonicals = new Set<string>();
-  const parsed = change.addTexts.map((input) => ({ input, canonical: resolve(input).canonical }));
+  const parsed = change.addTexts.map((input) => ({ input, piece: resolvePiece(input) }));
   for (const p of parsed) {
-    if (!p.canonical) throw new PantryInputError(`Could not understand ingredient: "${p.input}"`);
+    if (!p.piece) throw new PantryInputError(`Could not understand ingredient: "${p.input}"`);
   }
-  const canonicals = [...new Set(parsed.map((p) => p.canonical))];
+  const pieces = new Map<string, Piece>();
+  for (const p of parsed) pieces.set(p.piece!.canonical, p.piece!);
+  // sorted so concurrent transactions take their insert locks in the same order
+  const canonicals = [...pieces.keys()].sort();
+  const select = { id: true, name: true, canonical: true } as const;
   if (canonicals.length > 0) {
-    const rows = await tx.ingredient.findMany({ where: { canonical: { in: canonicals } }, select: { id: true, name: true, canonical: true } });
+    const rows = await tx.ingredient.findMany({ where: { canonical: { in: canonicals } }, select });
     for (const r of rows) byCanonical.set(r.canonical, r);
     for (const canonical of canonicals) {
       if (byCanonical.has(canonical)) continue;
-      const base = titleCase(canonical);
-      const clash = await tx.ingredient.findUnique({ where: { name: base }, select: { id: true } });
-      const row = await tx.ingredient.create({
-        data: { canonical, name: clash ? `${base} (${canonical})` : base, category: null, commonUnits: [] },
-        select: { id: true, name: true, canonical: true },
-      });
+      // ON CONFLICT DO NOTHING: a concurrent creator of the same canonical (or name) is not an error
+      const base = pieces.get(canonical)!.name;
+      let inserted = (await tx.ingredient.createMany({ data: [{ canonical, name: base, category: null, commonUnits: [] }], skipDuplicates: true })).count;
+      let row = await tx.ingredient.findUnique({ where: { canonical }, select });
+      if (!row) {
+        // the name is owned by a different canonical: use a suffixed one
+        inserted = (await tx.ingredient.createMany({ data: [{ canonical, name: `${base} (${canonical})`, category: null, commonUnits: [] }], skipDuplicates: true })).count;
+        row = await tx.ingredient.findUnique({ where: { canonical }, select });
+      }
+      if (!row) throw new Error(`Could not create ingredient "${canonical}"`);
       byCanonical.set(canonical, row);
-      createdCanonicals.add(canonical);
+      if (inserted > 0) createdCanonicals.add(canonical);
     }
   }
   for (const p of parsed) {
-    const ingredient = byCanonical.get(p.canonical)!;
+    const ingredient = byCanonical.get(p.piece!.canonical)!;
     idsToAdd.add(ingredient.id);
-    resolvedItems.push({ input: p.input, ingredient, created: createdCanonicals.delete(p.canonical) });
+    resolvedItems.push({ input: p.input, ingredient, created: createdCanonicals.delete(p.piece!.canonical) });
   }
 
   if (change.removeIds.length > 0) {

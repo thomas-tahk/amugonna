@@ -4,7 +4,7 @@ import { app } from '../src/app.js';
 import { prisma } from '../src/lib/database.js';
 import { generateToken } from '../src/lib/auth.js';
 import { runSeed } from '../prisma/seed.js';
-import { parsePantryText } from '../src/lib/pantry/index.js';
+import { parsePantryText, applyBulk, validateBulk } from '../src/lib/pantry/index.js';
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 
@@ -23,6 +23,12 @@ describe('parsePantryText (no DB)', () => {
   });
 });
 
+// letters only so the normalizer keeps them intact; unique per run so reruns never collide
+const tag = Array.from({ length: 8 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+const YUZU = `yuzu kosho ${tag}`;
+const SECRET = `my secret thing ${tag}`;
+const RACE = `racefruit ${tag}`;
+
 describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () => {
   let auth: [string, string];
   let userId: number;
@@ -38,11 +44,6 @@ describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () =
     userId = user.id;
     auth = ['Authorization', `Bearer ${generateToken({ userId, email: user.email })}`];
     await prisma.userIngredient.deleteMany({ where: { userId } });
-    const stale = await prisma.ingredient.findUnique({ where: { canonical: 'yuzu kosho' } });
-    if (stale) {
-      await prisma.userIngredient.deleteMany({ where: { ingredientId: stale.id } });
-      await prisma.ingredient.delete({ where: { id: stale.id } });
-    }
   }, 120_000);
 
   it('GET /common returns groups and exactly 4 staples', async () => {
@@ -73,14 +74,14 @@ describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () =
 
   it('bulk add: ids + free text, idempotent, remove works', async () => {
     const tomatoId = await idOf('tomato');
-    const body = { add: [tomatoId, 'scallions', 'yuzu kosho'] };
+    const body = { add: [tomatoId, 'scallions', YUZU] };
     const first = await request(app).post('/api/ingredients/user/bulk').set(...auth).send(body).expect(200);
     expect(first.body.data.ingredients).toHaveLength(3);
     expect(first.body.data.ingredients[0].ingredient.canonical).toEqual(expect.any(String));
     const resolved = first.body.data.resolved;
     expect(resolved).toHaveLength(2);
     expect(resolved[0]).toMatchObject({ input: 'scallions', created: false, ingredient: { canonical: 'green onion', name: 'Green Onion' } });
-    expect(resolved[1]).toMatchObject({ input: 'yuzu kosho', created: true, ingredient: { canonical: 'yuzu kosho', name: 'Yuzu Kosho' } });
+    expect(resolved[1]).toMatchObject({ input: YUZU, created: true, ingredient: { canonical: YUZU, name: YUZU.replace(/\b\w/g, (c) => c.toUpperCase()) } });
 
     const again = await request(app).post('/api/ingredients/user/bulk').set(...auth).send(body).expect(200);
     expect(again.body.data.ingredients).toHaveLength(3);
@@ -92,11 +93,8 @@ describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () =
     expect(get.body.data.ingredients[0].ingredient.canonical).toEqual(expect.any(String));
     expect(get.body.data.ingredients[0]).toMatchObject({ id: expect.any(Number), addedAt: expect.any(String) });
 
-    const sug = await request(app).get('/api/ingredients/suggest?q=yuzu').expect(200);
-    expect(sug.body.data.items.map((i: any) => i.canonical)).toContain('yuzu kosho');
-
     const rem = await request(app).post('/api/ingredients/user/bulk').set(...auth).send({ remove: [tomatoId, 999999] }).expect(200);
-    expect(rem.body.data.ingredients.map((i: any) => i.ingredient.canonical).sort()).toEqual(['green onion', 'yuzu kosho']);
+    expect(rem.body.data.ingredients.map((i: any) => i.ingredient.canonical).sort()).toEqual(['green onion', YUZU]);
   });
 
   it('bulk rejects bad bodies with 400', async () => {
@@ -110,11 +108,61 @@ describe.skipIf(!hasDb)('pantry entry API (needs a migrated DATABASE_URL)', () =
     await post({ remove: ['egg'] }).expect(400);
     expect((await post({ add: [999999] }).expect(400)).body.message).toMatch(/not found/);
     await post([1]).expect(400);
+    await post({ add: [2147483648] }).expect(400);
+    await post({ remove: [2147483648] }).expect(400);
+    await post({ add: [0] }).expect(400);
+    await post({ add: [1.5] }).expect(400);
   });
 
   it('bulk is atomic: a bad id rolls back text-created ingredients', async () => {
     await request(app).post('/api/ingredients/user/bulk').set(...auth).send({ add: ['dragonfruit sprinkles', 999999] }).expect(400);
     expect(await prisma.ingredient.count({ where: { canonical: 'dragonfruit sprinkles' } })).toBe(0);
+  });
+
+  it('bulk resolves a typo like parse does', async () => {
+    const res = await request(app).post('/api/ingredients/user/bulk').set(...auth).send({ add: ['tomatoe'] }).expect(200);
+    expect(res.body.data.resolved[0]).toMatchObject({ input: 'tomatoe', created: false, ingredient: { canonical: 'tomato' } });
+  });
+
+  it('concurrent creation of the same new ingredient by several users yields one row', async () => {
+    const users = await Promise.all(
+      [1, 2, 3, 4, 5].map((n) =>
+        prisma.user.upsert({ where: { email: `race${n}@amugonna.test` }, update: {}, create: { email: `race${n}@amugonna.test`, password: 'x' } }),
+      ),
+    );
+    await prisma.userIngredient.deleteMany({ where: { userId: { in: users.map((u) => u.id) } } });
+    const results = await Promise.all(
+      users.map((u) => prisma.$transaction((tx) => applyBulk(tx, u.id, validateBulk({ add: [RACE, 'tomato'] })))),
+    );
+    expect(await prisma.ingredient.count({ where: { canonical: RACE } })).toBe(1);
+    expect(results.flat().filter((r) => r.ingredient.canonical === RACE && r.created)).toHaveLength(1);
+    for (const u of users) expect(await prisma.userIngredient.count({ where: { userId: u.id } })).toBe(2);
+  });
+
+  it('suggest does not leak private user-created ingredients, and wildcards are literal', async () => {
+    await request(app).post('/api/ingredients/user/bulk').set(...auth).send({ add: [SECRET] }).expect(200);
+    const anon = await request(app).get(`/api/ingredients/suggest?q=${encodeURIComponent('my secret thing')}`).expect(200);
+    expect(anon.body.data.items.map((i: any) => i.canonical)).not.toContain(SECRET);
+    const other = await prisma.user.upsert({ where: { email: 'race1@amugonna.test' }, update: {}, create: { email: 'race1@amugonna.test', password: 'x' } });
+    const otherAuth = ['Authorization', `Bearer ${generateToken({ userId: other.id, email: other.email })}`] as [string, string];
+    const o = await request(app).get(`/api/ingredients/suggest?q=${encodeURIComponent(tag)}`).set(...otherAuth).expect(200);
+    expect(o.body.data.items).toEqual([]);
+    for (const q of ['%', '_', '\\']) {
+      const w = await request(app).get(`/api/ingredients/suggest?q=${encodeURIComponent(q)}`).expect(200);
+      expect(w.body.data.items).toEqual([]);
+    }
+  });
+
+  it('suggest includes DB-only ingredients that a public recipe uses', async () => {
+    const sys = await prisma.user.findUniqueOrThrow({ where: { email: 'system@amugonna.internal' } });
+    const ing = await prisma.ingredient.findUniqueOrThrow({ where: { canonical: SECRET } });
+    const recipe = await prisma.recipe.create({
+      data: { title: `Pub ${tag}`, instructions: 'x', isPublic: true, createdBy: sys.id, recipeIngredients: { create: [{ ingredientId: ing.id, substitutions: [] }] } },
+    });
+    const res = await request(app).get(`/api/ingredients/suggest?q=${encodeURIComponent('secret thing ' + tag)}`).expect(200);
+    expect(res.body.data.items.map((i: any) => i.canonical)).toContain(SECRET);
+    await prisma.recipeIngredient.deleteMany({ where: { recipeId: recipe.id } });
+    await prisma.recipe.delete({ where: { id: recipe.id } });
   });
 
   it('parse splits and resolves without writing', async () => {

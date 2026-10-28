@@ -6,7 +6,7 @@ interface Props {
   /** Add one known ingredient picked from type-ahead. */
   onPick: (item: SuggestItem) => void;
   /** Add several free-text strings; resolves when saved, rejects with a readable error. */
-  onAddTexts: (texts: string[]) => Promise<void>;
+  onAddTexts: (texts: (number | string)[]) => Promise<void>;
   /** Called with the raw input text on every change (used to filter the quick picks). */
   onTextChange?: (text: string) => void;
 }
@@ -100,7 +100,7 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
     setBusy(true);
     setError(null);
     try {
-      await onAddTexts(parsed.map((p) => p.input));
+      await onAddTexts(parsed.map((p) => p.ingredientId ?? p.input));
       reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save. Please try again.');

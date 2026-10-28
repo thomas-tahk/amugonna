@@ -7,9 +7,11 @@ interface Props {
   onPick: (item: SuggestItem) => void;
   /** Add several free-text strings; resolves when saved, rejects with a readable error. */
   onAddTexts: (texts: string[]) => Promise<void>;
+  /** Called with the raw input text on every change (used to filter the quick picks). */
+  onTextChange?: (text: string) => void;
 }
 
-const AddBox: React.FC<Props> = ({ onPick, onAddTexts }) => {
+const AddBox: React.FC<Props> = ({ onPick, onAddTexts, onTextChange }) => {
   const [text, setText] = useState('');
   const [suggestions, setSuggestions] = useState<SuggestItem[]>([]);
   const [active, setActive] = useState(-1);
@@ -17,6 +19,9 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
+  useEffect(() => {
+    onTextChange?.(text);
+  }, [text, onTextChange]);
   const listId = useId();
 
   // Debounced type-ahead (~150ms); stale responses are ignored.
@@ -119,7 +124,7 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts }) => {
             type="text"
             role="combobox"
             aria-expanded={showList}
-            aria-controls={listId}
+            aria-controls={showList ? listId : undefined}
             aria-autocomplete="list"
             aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
             autoComplete="off"
@@ -128,6 +133,7 @@ const AddBox: React.FC<Props> = ({ onPick, onAddTexts }) => {
             value={text}
             onChange={(e) => {
               setText(e.target.value);
+              setActive(-1);
               setParsed(null);
               setError(null);
               if (!e.target.value.trim()) setSuggestions([]);

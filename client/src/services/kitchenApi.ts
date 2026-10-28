@@ -42,6 +42,10 @@ export const kitchenApi = {
       })
     ).items,
 
+  /** Number of recipes cookable right now (GET /recipes/suggestions -> data.cookNow). */
+  cookNowCount: async (): Promise<number> =>
+    (await request<{ cookNow: unknown[] }>('/recipes/suggestions')).cookNow.length,
+
   bulk: (change: { add?: (number | string)[]; remove?: number[] }) =>
     request<BulkResult>('/ingredients/user/bulk', { method: 'POST', body: JSON.stringify(change) }),
 };

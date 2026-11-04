@@ -30,22 +30,22 @@
 }
 
 .tab-btn:hover {
-  color: #3b82f6;
+  color: var(--color-primary-text);
 }
 
 .tab-btn.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: var(--color-primary-text);
+  border-bottom-color: var(--color-primary);
 }
 
 .new-recipe-btn {
   margin-left: auto;
-  color: #3b82f6;
+  color: var(--color-primary-text);
   font-weight: 600;
 }
 
 .new-recipe-btn:hover {
-  color: #2563eb;
+  color: var(--color-primary-text);
 }
 
 .count-badge {
@@ -98,7 +98,7 @@
 .link-btn {
   background: none;
   border: none;
-  color: #3b82f6;
+  color: var(--color-primary-text);
   cursor: pointer;
   font-size: inherit;
   text-decoration: underline;
@@ -106,7 +106,7 @@
 }
 
 .link-btn:hover {
-  color: #2563eb;
+  color: var(--color-primary-text);
 }
 
 /* Suggestion tiers */
@@ -175,9 +175,9 @@
   padding: 3px 9px;
 }
 
-.badge-perfect { background: #d1fae5; color: #065f46; }
-.badge-almost { background: #fef3c7; color: #92400e; }
-.badge-aspirational { background: #f3f4f6; color: #374151; }
+.recipe-manager .badge-perfect { background: #d1fae5; color: #065f46; }
+.recipe-manager .badge-almost { background: #fef3c7; color: #92400e; }
+.recipe-manager .badge-aspirational { background: #f3f4f6; color: #374151; }
 
 .fav-indicator {
   color: #ef4444;
@@ -187,7 +187,7 @@
 .public-badge {
   font-size: 11px;
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--color-primary-text);
   border-radius: 10px;
   padding: 2px 8px;
   border: 1px solid #bfdbfe;
@@ -229,7 +229,7 @@
 
 .missing-ingredients {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-ink-muted);
   margin-top: 6px;
   line-height: 1.4;
 }
@@ -254,7 +254,7 @@
 
 .tag-cuisine {
   background: #eff6ff;
-  color: #2563eb;
+  color: var(--color-primary-text);
 }
 
 @media (max-width: 768px) {
@@ -262,24 +262,4 @@
   .recipe-grid { grid-template-columns: 1fr; }
   .tab-btn { padding: 8px 12px; font-size: 13px; }
   .new-recipe-btn { padding: 8px 10px; }
-}
-
-@media (prefers-color-scheme: dark) {
-  .recipe-manager { color: #e2e8f0; }
-  .tab-bar { border-bottom-color: #334155; }
-  .tab-btn { color: #94a3b8; }
-  .tab-btn.active { color: #60a5fa; border-bottom-color: #60a5fa; }
-  .new-recipe-btn { color: #60a5fa; }
-  .pantry-summary { background: #1e293b; color: #94a3b8; }
-  .count-badge { background: #334155; color: #cbd5e1; }
-  .recipe-card { background: #1e293b; border-color: #334155; }
-  .recipe-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
-  .card-title { color: #f1f5f9; }
-  .card-desc { color: #94a3b8; }
-  .card-meta span { background: #0f172a; color: #94a3b8; }
-  .badge-perfect { background: #064e3b; color: #6ee7b7; }
-  .badge-almost { background: #451a03; color: #fcd34d; }
-  .badge-aspirational { background: #1e293b; color: #94a3b8; }
-  .error-message { background: #7f1d1d; border-color: #991b1b; color: #fca5a5; }
-  .tag-cuisine { background: #1e3a5f; color: #60a5fa; }
 }

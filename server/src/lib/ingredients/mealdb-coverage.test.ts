@@ -1,0 +1,323 @@
+import { describe, expect, it } from 'vitest';
+import { canonicalize, resolve, satisfies } from './index.js';
+
+/**
+ * Coverage of the real TheMealDB catalogue (docs/chief/research/mealdb-live-2026-10-28.md):
+ * every name seen 3+ times, every name seen twice, and a selection of single-occurrence names.
+ * Names are as our normalizer produced them (lowercase, singular, descriptors stripped).
+ */
+const FREQUENT = [
+  'sesame seed oil',
+  'bean sprout',
+  'egg plant',
+  'hotsauce',
+  'dulce de leche',
+  'harissa spice',
+  'squid',
+  'almond extract',
+  'brandy',
+  'challot',
+  'golden caster sugar',
+  'lard',
+  'orange blossom water',
+  'sherry vinegar',
+  'beef brisket',
+  'coconut cream',
+  'dried apricot',
+  'fish stock',
+  'marjoram',
+  'shortening',
+  'star anise',
+  'tamarind paste',
+  'blackberry',
+  'custard',
+  'digestive biscuit',
+  'english mustard',
+  'ground cardomom',
+  'ground nut oil',
+  'gruyere',
+  'mascarpone',
+  'paella rice',
+  'palm sugar',
+  'sauerkraut',
+  'starch',
+  'swede',
+  'all purpose seasoning',
+  'beef fillet',
+  'brown lentil',
+  'caraway seed',
+  'celeriac',
+  'celery salt',
+  'clam',
+  'crusty bread',
+  'dried fruit',
+  'filo pastry',
+  'galangal',
+  'mussel',
+  'prune',
+  'rose water',
+  'salt cod',
+  'semolina',
+  'suet',
+  'vanilla sugar',
+  'apricot',
+  'black pudding',
+  'braeburn apple',
+  'breadfruit',
+  'chimichurri sauce',
+  'cilantro leaf',
+  'codfish bulljaw',
+  'corned beef',
+  'currant',
+  'ghee',
+  'ginger paste',
+  'jersey royal potato',
+  'lamb loin chop',
+  'lamb stock',
+  'lime leaf',
+  'makrut lime leaf',
+  'mirin',
+  'onion salt',
+  'oyster mushroom',
+  'plantain',
+  'pretzel',
+  'raspberry jam',
+  'red pepper paste',
+  'red potato',
+  'rice flour',
+  'rye bread',
+  'sake',
+  'sichuan pepper',
+  'soya bean',
+  'sushi rice',
+  'tapioca',
+  'water chestnut',
+];
+const TWICE = [
+  'almond essence',
+  'apricot jam',
+  'bamboo shoot',
+  'banana leaf',
+  'barbeque sauce',
+  'beef shin',
+  'brie',
+  'brown rice noodle',
+  'buckwheat',
+  'cacao',
+  'callaloo',
+  'candied peel',
+  'cassava',
+  'chicken liver',
+  'chinese broccoli',
+  'chinese five spice powder',
+  'christma pudding',
+  'clotted cream',
+  'coco sugar',
+  'conch',
+  'daikon radish',
+  'dark rum',
+  'dried cranberry',
+  'duck leg',
+  'duck sauce',
+  'fig',
+  'frozen seafood mix',
+  'fruit mix',
+  'garlic sauce',
+  'gelatine leaf',
+  'ginger cordial',
+  'ginger garlic paste',
+  'glace cherry',
+  'goat meat',
+  'goose fat',
+  'gouda cheese',
+  'grand marnier',
+  'hispi cabbage',
+  'horseradish',
+  'hummus',
+  'italian fennel sausage',
+  'jamaican curry powder',
+  'jamon iberico',
+  'jerusalem artichoke',
+  'kaffir lime leaf',
+  'lamb kidney',
+  'linguine pasta',
+  'marzipan',
+  'meringue nest',
+  'mexican cheese',
+  'mincemeat',
+  'miniature marshmallow',
+  'mixed peel',
+  'monterey jack cheese',
+  'oxtail',
+  'pecorino',
+  'pickle juice',
+  'poppy seed',
+  'pork back rib',
+  'pork tenderloin',
+  'potato starch',
+  'pul biber',
+  'red chilli powder',
+  'rhubarb',
+  'rice paper sheet',
+  'rice stick noodle',
+  'rice wine',
+  'romano pepper',
+  'rye flour',
+  'sardine',
+  'savoy cabbage',
+  'sazon goya',
+  'seasoning',
+  'semolina flour',
+  'sesame seed burger bun',
+  'stir fry vegetable',
+  'summer savoury',
+  'sweet smoked paprika',
+  'udon noodle',
+  'vegetable millk',
+  'vermicelli pasta',
+  'vermicelli rice noodle',
+  'wheat flour',
+  'white chocolate chip',
+];
+const ONCE = [
+  'gruyere cheese',
+  'pinto bean',
+  'refried bean',
+  'rigatoni',
+  'farfalle',
+  'bowtie pasta',
+  'paneer',
+  'pomegranate',
+  'cranberry',
+  'smoky paprika',
+  'hot smoked paprika',
+  'mixed spice',
+  'mackerel',
+  'monkfish',
+  'lobster',
+  'oyster',
+  'sea bass fillet',
+  'red snapper',
+  'herring',
+  'hake',
+  'kielbasa',
+  'lamb shank',
+  'chuck roast',
+  'beef tenderloin',
+  'beef flank steak',
+  'ciabatta',
+  'english muffin',
+  'phyllo dough',
+  'ready rolled shortcrust pastry',
+  'gochujang',
+  'shaoxing wine',
+  'ras el hanout',
+  'cream of tartar',
+  'custard powder',
+  'fenugreek',
+  'juniper berry',
+  'habanero pepper',
+  'ancho chilli',
+  'queso fresco',
+  'manchego',
+  'stilton cheese',
+  'emmentaler cheese',
+  'pumpkin puree',
+  'pineapple juice',
+  'bulgur wheat',
+  'black eyed pea',
+  'borlotti bean',
+  'mung bean sprout',
+  'chickpea flour',
+  'grits',
+  'plum sauce',
+  'shrimp paste',
+  'seafood stock',
+  'chicken bouillon powder',
+  'beef stock concentrate',
+  'hot beef stock',
+];
+
+/**
+ * Genuinely not a single ingredient, or too vague to pin to one vocabulary entry.
+ * They stay unknown on purpose (a cook would have to say what they mean).
+ */
+const NOT_INGREDIENTS = new Set([
+  'starch', // which starch? potato starch and cornstarch are separate entries
+  'all purpose seasoning', // unspecified blend
+  'seasoning', // unspecified blend
+  'fruit mix', // unspecified
+  'stir fry vegetable', // unspecified mix
+  'frozen seafood mix', // unspecified mix
+  'sazon goya', // branded blend with no stable composition
+  'codfish bulljaw', // not a recognisable ingredient name (dish-specific)
+  'vegetable millk', // typo that could mean milk or stock
+  'ground sugar', // ambiguous (caster? icing?); deliberately left unknown rather than a false match
+]);
+
+describe('TheMealDB coverage', () => {
+  const all = [...new Set([...FREQUENT, ...TWICE, ...ONCE])].filter((n) => !NOT_INGREDIENTS.has(n));
+
+  it('skip-list stays small', () => {
+    expect(NOT_INGREDIENTS.size).toBeLessThanOrEqual(10);
+  });
+
+  it.each(all)('%s resolves to a known ingredient', (name) => {
+    expect(resolve(name).known, name).toBe(true);
+  });
+
+  it('raw lines resolve to the right entry', () => {
+    expect(canonicalize('1 tbsp Sesame Seed Oil')).toBe('sesame oil');
+    expect(canonicalize('2 Egg Plants')).toBe('eggplant');
+    expect(canonicalize('Challots')).toBe('shallot');
+    expect(canonicalize('1 tbsp Ground Nut Oil')).toBe('peanut oil');
+    expect(canonicalize('Golden Caster Sugar')).toBe('caster sugar');
+  });
+});
+
+describe('TheMealDB vocabulary: no false "have"/"swap" between different ingredients', () => {
+  // [pantry item, recipe needs] -> must be missing
+  const notInterchangeable: [string, string][] = [
+    ['bean sprout', 'mung bean'],
+    ['mung bean', 'bean sprout'],
+    ['flour', 'rice flour'],
+    ['rice flour', 'flour'],
+    ['chilli', 'ancho chilli'],
+    ['cream', 'clotted cream'],
+    ['sushi rice', 'sticky rice'],
+    ['rice', 'glutinous rice'],
+    ['rice paper', 'spring roll wrapper'],
+    ['tapioca', 'tapioca starch'],
+    ['tapioca starch', 'tapioca'],
+    ['fenugreek', 'fenugreek leaf'],
+    ['fenugreek leaf', 'fenugreek'],
+    ['horseradish', 'horseradish sauce'],
+    ['horseradish sauce', 'horseradish'],
+    ['caster sugar', 'ground sugar'],
+    ['mirin', 'rice cooking wine'],
+    ['rye flour', 'flour'],
+    ['flour', 'rye flour'],
+    ['sugar', 'vanilla sugar'],
+    ['sugar', 'palm sugar'],
+    ['rice', 'spanish rice'],
+    ['pumpkin', 'pumpkin pie filling'],
+  ];
+  it.each(notInterchangeable)('pantry %s does not cover recipe %s', (pantry, need) => {
+    expect(satisfies([resolve(pantry).canonical], resolve(need).canonical).status).toBe('missing');
+  });
+
+  it('cotija is a cheese swap, not a have', () => {
+    expect(satisfies(['cheese'], 'cotija').status).toBe('swap');
+  });
+
+  it('kept equivalences', () => {
+    expect(resolve('cotija cheese').canonical).toBe('cotija');
+    expect(resolve('cotija').entry?.parent).toBe('cheese');
+    expect(resolve('romano cheese').canonical).toBe('pecorino');
+    expect(resolve('rice cooking wine').canonical).toBe('rice wine');
+    expect(resolve('methi').canonical).toBe('fenugreek leaf');
+    expect(resolve('creamed horseradish').canonical).toBe('horseradish sauce');
+    expect(resolve('tapioca flour').canonical).toBe('tapioca starch');
+    expect(resolve('sticky rice').canonical).toBe('glutinous rice');
+  });
+});

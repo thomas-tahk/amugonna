@@ -13,7 +13,7 @@
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Node.js + Express + TypeScript  
 - **Database**: PostgreSQL
-- **Hosting**: Digital Ocean
+- **Hosting**: Undecided (see `docs/milestones/M1.md` for options); never an idle-pausing free tier
 
 ## Development Environment
 - Monorepo structure with `/client` and `/server` workspaces
@@ -47,25 +47,19 @@
 - User accounts and personalized experience
 
 ## Current Status
-- **Database foundation fully operational** - PostgreSQL + Prisma working with enhanced recipe schema
-- **Complete JWT-based authentication system** - Registration, login, profile management tested and working
-- **Ingredient management API** - Search, user pantry CRUD operations, database seeding
-- **Frontend foundation scaffold** - React components, TypeScript types, API services, authentication context
-- **AI Recipe Generation System** - OpenAI-powered recipe creation from user's pantry ingredients
-- **Complete recipe management** - Generate, view, save, and manage AI-created recipes
-- Server-database connectivity verified via health endpoint
-- **Ready for production deployment and testing**
-- Documentation structure established and maintained
+- **Milestone 1 ("Cook from my pantry") is built.** Plan: `docs/milestones/M1.md`.
+- **No AI and no API keys needed.** The OpenAI recipe generator was removed; ignore any older text saying otherwise.
+- Works today: sign up/in; Kitchen tab (tap common items by category, or type free text like "eggs, scallions" and confirm chips; fuzzy type-ahead); Cook tab ("Cook now" and "1 ingredient away", missing item named, swaps shown, copy missing items); cook view (ingredients with have/swap/missing/assumed badges, numbered tappable steps, source attribution, screen kept awake); My recipes (manual recipes).
+- Recipe base: ingredient vocabulary (~500) + 21 starter recipes from `npm run seed -w server`. The seed is required; without it Kitchen has no quick picks. The dev seed also adds 30 "Amugonna test fixture" recipes that show in Cook results; `NODE_ENV=production npm run seed -w server` skips them. `npm run import:mealdb -w server` adds ~790 TheMealDB recipes (free test key, development use only; a public launch needs their supporter key). `npm run report:matches -w server` prints match numbers.
+- Not built: dietary/allergy filtering (M2), photo to pantry (M3), bring-your-own recipes (M4), deploy.
+- Tests: Vitest in both workspaces, Playwright e2e; CI in `.github/workflows/ci.yml`; schema via Prisma migrations in `server/prisma/migrations/`.
 
 ## Development Status
-- **Backend**: Complete with AI recipe generation (4 features)
-- **Frontend**: Complete with recipe generation UI and pantry management (4 features)
-- **Database**: Enhanced schema with AI recipe fields, ready for seeding
-- **Authentication**: Complete and integrated
-- **AI Integration**: OpenAI-powered recipe generation ready (requires OPENAI_API_KEY)
-- **Recipe Management**: Full CRUD operations for AI-generated recipes
+- **Backend**: auth, ingredients, pantry, recipes, normalizer, matching, suggestions endpoints
+- **Frontend**: auth, Kitchen, Cook, cook view, My recipes
+- **Database**: PostgreSQL + Prisma, migrations `init` and `recipe_base`
+- **Docs**: hand-maintained (nothing rewrites docs)
 
-*Last updated: 9/10/2025*
 ## Development Approach Notes
 - **Token Efficiency**: Switched to guided development approach to reduce token consumption
 - **Code Ownership**: User-led implementation with Claude providing structure and guidance
@@ -73,38 +67,11 @@
 - **Incremental Development**: Small, testable pieces rather than comprehensive generation
 
 ## Next Session Pickup Instructions
-
-### Immediate Next Steps (Session Resume):
-1. **Test Backend APIs First**
-   - Run `npm run seed` in `/server` directory to populate database
-   - Test ingredient search: `curl "http://localhost:3001/api/ingredients?search=chicken"`
-   - Test authentication endpoints (registration/login) 
-   - Verify all backend functionality before frontend work
-
-2. **Frontend Testing Strategy**
-   - Start development server: `npm run dev` in `/client` directory
-   - Test authentication flow in browser
-   - Verify ingredient search and pantry management
-   - Debug any integration issues
-
-3. **Guided Development Approach**
-   - Claude provides step-by-step guidance and code structure
-   - User implements code to reduce token consumption
-   - Focus on incremental testing and validation
-   - Small, manageable pieces rather than comprehensive generation
-
-### Current Working Directory
-- **Server**: `/Users/tnt/Projects/amugonna/server` (backend development)
-- **Client**: `/Users/tnt/Projects/amugonna/client` (frontend development)
-- **Root**: `/Users/tnt/Projects/amugonna` (documentation and git operations)
-
-### Development Status
-- **Backend**: 100% complete with AI recipe generation
-- **Frontend**: Complete with recipe generation UI and pantry management
-- **Database**: Enhanced schema with AI recipe fields, ready for seeding with `npm run seed`
-- **Authentication**: Complete and integrated
-- **AI Integration**: OpenAI-powered recipe generation ready (requires OPENAI_API_KEY)
-- **Recipe Management**: Full CRUD operations for AI-generated recipes
+1. Read `docs/chief/vision.md` and `docs/milestones/M1.md`.
+2. Install: `npm ci` (repo root; the server postinstall runs `prisma generate`).
+3. Migrate and seed: `cd server && npx prisma migrate deploy && npm run seed` (needs `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`; the owner creates `server/.env` from `server/.env.example`).
+4. Test: `npm test` (DB tests need `TEST_DATABASE_URL` pointing at a database whose name contains "test"). E2E: `npm run e2e`. Build: `npm run build`. Lint client: `npm run lint -w client`.
+5. Run: `npm run dev`.
 
 ## Next Steps
-See `/docs/ROADMAP.md` for detailed development priorities and planning.
+See `docs/chief/vision.md` and `docs/milestones/M1.md`. (`docs/ROADMAP.md` is superseded.)

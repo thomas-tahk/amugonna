@@ -1,0 +1,87 @@
+name: mealdb-live
+
+# Measures how well the real TheMealDB catalogue serves reference pantries.
+# Imported data lives only in the CI Postgres service; nothing is committed.
+on:
+  push:
+    branches: [m1-cook-from-pantry]
+    paths:
+      - 'server/**'
+      - '.github/workflows/mealdb-live.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+jobs:
+  mealdb-live:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: amugonna_live
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amugonna_live
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/amugonna_live
+      JWT_SECRET: ci-test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+        working-directory: server
+
+      # Production seed: vocabulary + starter recipes only (the 30-recipe test fixture is skipped).
+      - name: Seed
+        run: npm run seed -w server
+        env:
+          NODE_ENV: production
+
+      - name: Import TheMealDB
+        run: npm run import:mealdb -w server
+        continue-on-error: true
+        timeout-minutes: 10
+
+      - name: Match report
+        if: always()
+        run: npm run report:matches -w server -- --json report.json
+        env:
+          REPORT_TOP: '40'
+
+      - name: Fail if no TheMealDB recipes were imported
+        working-directory: server
+        run: |
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('report.json', 'utf8'));
+            const n = (r.bySource.find((s) => s.source === 'TheMealDB') || {count: 0}).count;
+            console.log('TheMealDB recipes in report.json:', n);
+            if (n === 0) { console.error('Report shows 0 TheMealDB recipes: import failed'); process.exit(1); }
+          "
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: match-report
+          path: server/report.json
+          if-no-files-found: warn

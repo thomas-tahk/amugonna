@@ -1,0 +1,16 @@
+import { open, signUp, shot } from './qa-lib.mjs';
+const { browser, page } = await open('desktop');
+await signUp(page);
+await page.getByRole('button', { name: 'Eggs', exact: true }).click();
+await page.getByRole('button', { name: 'Butter', exact: true }).click();
+await page.getByRole('button', { name: 'Bread', exact: true }).click();
+await page.waitForTimeout(800);
+await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Cook' }).click();
+await page.getByRole('region', { name: 'Cook now' }).waitFor();
+const card = page.getByRole('region', { name: 'Cook now' }).getByRole('listitem').first().getByRole('button');
+await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+await card.focus();
+await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab');
+console.log(await card.evaluate((e) => ({ focused: document.activeElement === e, fv: e.matches(':focus-visible'), outline: getComputedStyle(e).outline, shadow: getComputedStyle(e).boxShadow })));
+await shot(page, 'desktop-a6b-card-focus-ring');
+await browser.close();

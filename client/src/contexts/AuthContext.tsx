@@ -2,12 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { User, LoginCredentials, RegisterData } from '../types';
 import { authApi } from '../services/api';
+import { SESSION_EXPIRED_MESSAGE, setUnauthorizedHandler } from '../services/http';
+import { clearRoute } from '../components/shell/route';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** Set when a session ended on its own (expired token); shown on the sign-in screen. */
+  sessionMessage: string | null;
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; message: string }>;
   register: (userData: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
@@ -16,6 +20,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -32,6 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
 
   const isAuthenticated = !!user && !!token;
 
@@ -76,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(userData);
         setToken(userToken);
+        setSessionMessage(null);
         
         // Store in localStorage
         localStorage.setItem('authToken', userToken);
@@ -100,6 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(newUser);
         setToken(userToken);
+        setSessionMessage(null);
         
         // Store in localStorage
         localStorage.setItem('authToken', userToken);
@@ -120,7 +128,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    clearRoute();
   };
+
+  // Any API call that comes back 401 with a token ends the session and sends the person to sign in.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      clearRoute();
+      setSessionMessage(SESSION_EXPIRED_MESSAGE);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   const updateUser = async (userData: Partial<Pick<User, 'firstName' | 'lastName'>>) => {
     if (!token) {
@@ -150,6 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     isLoading,
     isAuthenticated,
+    sessionMessage,
     login,
     register,
     logout,

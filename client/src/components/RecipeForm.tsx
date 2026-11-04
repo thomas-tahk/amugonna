@@ -68,7 +68,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
     }]);
   };
 
-  const updateIngredient = (index: number, field: keyof RecipeIngredientInput, value: any) => {
+  const updateIngredient = (index: number, field: keyof RecipeIngredientInput, value: RecipeIngredientInput[keyof RecipeIngredientInput]) => {
     setIngredients(prev => prev.map((ing, i) =>
       i === index ? { ...ing, [field]: value } : ing
     ));

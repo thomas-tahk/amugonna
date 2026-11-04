@@ -13,8 +13,8 @@ import type {
   RecipesResponse,
   CreateRecipeData,
   UpdateRecipeData,
-  SuggestionsResponse,
 } from '../types';
+import { CHECK_DETAILS_MESSAGE, NETWORK_MESSAGE, notifyUnauthorized } from './http';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
@@ -42,12 +42,17 @@ async function apiRequest<T>(
     });
 
     const data = await response.json();
+    const sentToken = new Headers(options.headers).has('Authorization');
+    if (response.status === 401 && sentToken) notifyUnauthorized();
+    if (data && data.success === false && /^validation failed$/i.test(data.message ?? '')) {
+      return { ...data, message: CHECK_DETAILS_MESSAGE };
+    }
     return data;
   } catch (error) {
     console.error('API request failed:', error);
     return {
       success: false,
-      message: 'Network error occurred',
+      message: NETWORK_MESSAGE,
     };
   }
 }
@@ -129,7 +134,7 @@ export const ingredientsApi = {
   addUserIngredient: async (
     ingredientData: AddIngredientData,
     token?: string
-  ): Promise<ApiResponse<{ userIngredient: any }>> => {
+  ): Promise<ApiResponse<{ userIngredient: Record<string, unknown> }>> => {
     return apiRequest('/ingredients/user', {
       method: 'POST',
       headers: getAuthHeaders(token),
@@ -141,7 +146,7 @@ export const ingredientsApi = {
     id: number,
     ingredientData: UpdateIngredientData,
     token?: string
-  ): Promise<ApiResponse<{ userIngredient: any }>> => {
+  ): Promise<ApiResponse<{ userIngredient: Record<string, unknown> }>> => {
     return apiRequest(`/ingredients/user/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(token),
@@ -230,15 +235,6 @@ export const recipesApi = {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
-    });
-  },
-
-  getSuggestions: async (
-    token?: string
-  ): Promise<ApiResponse<SuggestionsResponse>> => {
-    return apiRequest('/recipes/suggestions', {
-      method: 'GET',
-      headers: getAuthHeaders(token),
     });
   },
 };

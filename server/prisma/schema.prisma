@@ -34,14 +34,24 @@ model User {
 model Ingredient {
   id             Int      @id @default(autoincrement())
   name           String   @unique
+  // Normalizer output (lowercase singular). The identity used for matching.
+  canonical      String   @unique
   category       String?
+  parentId       Int?     @map("parent_id") // family, e.g. "red onion" -> "onion" (one level)
+  isStaple       Boolean  @default(false) @map("is_staple") // assumed always available
+  isCommon       Boolean  @default(false) @map("is_common") // shown as a quick-pick tile
+  sortOrder      Int?     @map("sort_order") // vocabulary order
   commonUnits    String[] @map("common_units")
   nutritionalInfo Json?   @map("nutritional_info")
   createdAt      DateTime @default(now()) @map("created_at")
 
+  parent   Ingredient?  @relation("IngredientFamily", fields: [parentId], references: [id])
+  children Ingredient[] @relation("IngredientFamily")
+
   userIngredients   UserIngredient[]
   recipeIngredients RecipeIngredient[]
 
+  @@index([parentId])
   @@map("ingredients")
 }
 
@@ -70,6 +80,15 @@ model Recipe {
   // Source information
   sourceUrl    String?  @map("source_url") // Original URL if imported
   sourceName   String?  @map("source_name") // "YouTube", "AllRecipes", "Grandma's cookbook", etc.
+
+  // Import identity and attribution (null for hand-made recipes)
+  externalSource String? @map("external_source") // "TheMealDB", "amugonna-seed", "fixture"
+  externalId     String? @map("external_id")
+  imageUrl       String? @map("image_url")
+  category       String? // e.g. "Chicken", "Dessert"
+  area           String? // e.g. "Italian"
+  attribution    String? // credit line shown with the recipe
+  license        String? // licence / terms the content is used under
 
   // Time and serving info
   prepTime     Int?     @map("prep_time") // in minutes
@@ -110,6 +129,7 @@ model Recipe {
   recipeDietaryTags RecipeDietaryTag[]
   favoriteRecipes   FavoriteRecipe[]
 
+  @@unique([externalSource, externalId])
   @@map("recipes")
 }
 
@@ -122,10 +142,14 @@ model RecipeIngredient {
   optional         Boolean  @default(false)
   substitutions    String[]
   preparationNote  String?  @map("preparation_note")
+  rawText          String?  @map("raw_text") // original line, e.g. "2 tbsp Plain Flour"
+  measure          String? // original quantity text, e.g. "2 tbsp"
 
   recipe     Recipe     @relation(fields: [recipeId], references: [id])
   ingredient Ingredient @relation(fields: [ingredientId], references: [id])
 
+  @@index([recipeId])
+  @@index([ingredientId])
   @@map("recipe_ingredients")
 }
 

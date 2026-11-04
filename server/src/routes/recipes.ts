@@ -1,6 +1,9 @@
 import express from 'express';
 import { prisma } from '../lib/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { splitSteps } from '../lib/recipes/index.js';
+import { satisfies } from '../lib/ingredients/index.js';
+import { displayName, getRecipesFor, invalidateRecipeIndex, matchRecipes, mergeIngredients } from '../lib/matching/index.js';
 
 const router = express.Router();
 
@@ -78,103 +81,23 @@ router.get('/suggestions', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
 
-    // Get user's pantry ingredient IDs
     const pantryItems = await prisma.userIngredient.findMany({
       where: { userId },
-      select: { ingredientId: true }
+      select: { ingredient: { select: { canonical: true } } }
     });
-    const pantryIngredientIds = new Set(pantryItems.map(p => p.ingredientId));
+    const pantry = [...new Set(pantryItems.map(p => p.ingredient.canonical))];
 
-    // Get all recipes accessible to the user (own + public)
-    const recipes = await prisma.recipe.findMany({
-      where: {
-        OR: [
-          { createdBy: userId },
-          { isPublic: true }
-        ]
-      },
-      include: {
-        recipeIngredients: {
-          select: {
-            ingredientId: true,
-            optional: true,
-            quantity: true,
-            unit: true,
-            ingredient: {
-              select: {
-                id: true,
-                name: true,
-                category: true
-              }
-            }
-          }
-        },
-        favoriteRecipes: {
-          where: { userId },
-          select: { id: true }
-        }
-      }
-    });
-
-    // Score each recipe by pantry coverage
-    const scored = recipes.map(recipe => {
-      const required = recipe.recipeIngredients.filter(ri => !ri.optional);
-      const optional = recipe.recipeIngredients.filter(ri => ri.optional);
-
-      const matchedRequired = required.filter(ri => pantryIngredientIds.has(ri.ingredientId)).length;
-      const totalRequired = required.length;
-
-      // Recipes with no ingredients score 100 (e.g. "boil water")
-      const score = totalRequired === 0 ? 100 : Math.round((matchedRequired / totalRequired) * 100);
-
-      const missingIngredients = required
-        .filter(ri => !pantryIngredientIds.has(ri.ingredientId))
-        .map(ri => ri.ingredient);
-
-      return {
-        id: recipe.id,
-        title: recipe.title,
-        description: recipe.description,
-        prepTime: recipe.prepTime,
-        cookTime: recipe.cookTime,
-        servings: recipe.servings,
-        difficulty: recipe.difficulty,
-        cuisineTypes: recipe.cuisineTypes,
-        tags: recipe.tags,
-        dietaryTags: recipe.dietaryTags,
-        allergens: recipe.allergens,
-        images: recipe.images,
-        isFavorite: recipe.favoriteRecipes.length > 0,
-        matchScore: score,
-        matchedIngredients: matchedRequired,
-        totalIngredients: totalRequired,
-        missingIngredients,
-        hasOptionalIngredients: optional.length > 0
-      };
-    });
-
-    // Tier the results and exclude very poor matches
-    const canMakeNow = scored
-      .filter(r => r.matchScore >= 90)
-      .sort((a, b) => b.matchScore - a.matchScore);
-
-    const almostThere = scored
-      .filter(r => r.matchScore >= 70 && r.matchScore < 90)
-      .sort((a, b) => b.matchScore - a.matchScore);
-
-    const aspirational = scored
-      .filter(r => r.matchScore >= 50 && r.matchScore < 70)
-      .sort((a, b) => b.matchScore - a.matchScore);
+    const recipes = await getRecipesFor(userId);
+    const { cookNow, oneAway, twoAway } = matchRecipes(pantry, recipes);
 
     res.json({
       success: true,
       data: {
-        pantrySize: pantryIngredientIds.size,
-        suggestions: {
-          canMakeNow,
-          almostThere,
-          aspirational
-        }
+        pantrySize: pantry.length,
+        totalRecipes: recipes.length,
+        cookNow,
+        oneAway,
+        twoAway
       }
     });
 
@@ -270,6 +193,7 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     });
 
+    invalidateRecipeIndex();
     res.status(201).json({
       success: true,
       message: 'Recipe created successfully',
@@ -289,7 +213,10 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const userId = req.user!.userId;
-    const recipeId = parseInt(req.params.id);
+    const recipeId = /^\d+$/.test(req.params.id) ? Number(req.params.id) : NaN;
+    if (!Number.isInteger(recipeId) || recipeId > 2147483647) {
+      return res.status(404).json({ success: false, message: 'Recipe not found' });
+    }
 
     const recipe = await prisma.recipe.findFirst({
       where: {
@@ -308,12 +235,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
           }
         },
         recipeIngredients: {
+          orderBy: { id: 'asc' },
           include: {
             ingredient: {
               select: {
                 id: true,
                 name: true,
                 category: true,
+                canonical: true,
                 commonUnits: true
               }
             }
@@ -332,12 +261,37 @@ router.get('/:id', authenticateToken, async (req, res) => {
       });
     }
 
+    const pantryItems = await prisma.userIngredient.findMany({
+      where: { userId },
+      select: { ingredient: { select: { canonical: true } } }
+    });
+    const pantry = pantryItems.map(p => p.ingredient.canonical);
+
+    const ingredients = mergeIngredients(
+      recipe.recipeIngredients.map(ri => ({
+        canonical: ri.ingredient.canonical,
+        name: displayName(ri.ingredient.canonical, ri.ingredient.name),
+        measure: ri.measure ?? null,
+        optional: ri.optional
+      }))
+    ).map(ing => {
+      const r = satisfies(pantry, ing.canonical);
+      return {
+        ...ing,
+        status: r.status,
+        ...(r.status === 'swap' && r.using ? { using: displayName(r.using, r.using) } : {})
+      };
+    });
+
     res.json({
       success: true,
       data: {
         recipe: {
           ...recipe,
-          isFavorite: recipe.favoriteRecipes.length > 0
+          steps: splitSteps(recipe.instructions),
+          ingredients,
+          isFavorite: recipe.favoriteRecipes.length > 0,
+          isOwner: recipe.createdBy === userId
         }
       }
     });
@@ -439,6 +393,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       });
     });
 
+    invalidateRecipeIndex();
     res.json({
       success: true,
       message: 'Recipe updated successfully',
@@ -532,6 +487,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       prisma.recipe.delete({ where: { id: recipeId } })
     ]);
 
+    invalidateRecipeIndex();
     res.json({
       success: true,
       message: 'Recipe deleted successfully'

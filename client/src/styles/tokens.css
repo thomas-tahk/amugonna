@@ -1,6 +1,6 @@
-/* Amugonna design tokens. Bold food-app palette, light only.
+/* Amugonna design tokens. Default food-app palette. Alternate palettes live in palettes.css.
    Text/background pairs are asserted >= 4.5:1 in contrast.test.ts. */
-:root {
+:root, [data-palette="cream"] {
   color-scheme: light;
 
   /* Surfaces and ink */

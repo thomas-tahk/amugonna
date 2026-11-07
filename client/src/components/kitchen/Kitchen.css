@@ -91,3 +91,16 @@
 @media (min-width: 768px) {
   .kitchen-toast { bottom: var(--space-5); }
 }
+
+.kitchen-exclusions { padding: 1rem; margin-bottom: 1rem; }
+.kitchen-exclusions summary { cursor: pointer; font-weight: 700; min-height: 2rem; }
+.kitchen-exclusions p { margin: .75rem 0; }
+.kitchen-exclusions fieldset { border: 0; padding: 0; min-width: 0; }
+.kitchen-exclusions legend { font-weight: 700; margin-bottom: .5rem; }
+.exclusion-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .5rem; }
+.exclusion-presets label { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+.exclusion-presets input { width: 20px; height: 20px; accent-color: var(--color-primary); }
+.kitchen-exclusions .input { display: block; width: 100%; margin-top: .5rem; }
+@media (max-width: 767px) {
+  .kitchen:has(.kitchen-exclusions[open]) .kitchen-cta { display: none; }
+}

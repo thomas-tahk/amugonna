@@ -22,11 +22,15 @@ model User {
   lastName  String?  @map("last_name")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  avoidedAllergens String[] @default([]) @map("avoided_allergens")
+  excludedIngredients String[] @default([]) @map("excluded_ingredients")
+  reviewedIngredients String[] @default([]) @map("reviewed_ingredients")
 
   userIngredients        UserIngredient[]
   userDietaryRestrictions UserDietaryRestriction[]
   createdRecipes         Recipe[]
   favoriteRecipes        FavoriteRecipe[]
+  recipeNotes            RecipeNote[]
 
   @@map("users")
 }
@@ -74,6 +78,7 @@ model UserIngredient {
 model Recipe {
   id           Int      @id @default(autoincrement())
   title        String
+  koreanTitle  String?  @map("korean_title")
   description  String?
   instructions String   @db.Text // Step-by-step instructions (stored as text, parsed by frontend)
 
@@ -128,6 +133,7 @@ model Recipe {
   recipeIngredients RecipeIngredient[]
   recipeDietaryTags RecipeDietaryTag[]
   favoriteRecipes   FavoriteRecipe[]
+  recipeNotes       RecipeNote[]
 
   @@unique([externalSource, externalId])
   @@map("recipes")
@@ -205,4 +211,17 @@ model FavoriteRecipe {
 
   @@unique([userId, recipeId])
   @@map("favorite_recipes")
+}
+
+model RecipeNote {
+  id            Int @id @default(autoincrement())
+  userId        Int @map("user_id")
+  recipeId      Int @map("recipe_id")
+  personalNotes String @map("personal_notes") @db.Text
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe        Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@map("recipe_notes")
 }

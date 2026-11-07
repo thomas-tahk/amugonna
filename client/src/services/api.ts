@@ -13,6 +13,8 @@ import type {
   RecipesResponse,
   CreateRecipeData,
   UpdateRecipeData,
+  RecipeImportDraft,
+  RecipeImportPreview,
 } from '../types';
 import { CHECK_DETAILS_MESSAGE, NETWORK_MESSAGE, notifyUnauthorized } from './http';
 
@@ -49,6 +51,7 @@ async function apiRequest<T>(
     }
     return data;
   } catch (error) {
+    if (options.signal?.aborted) return { success: false, message: 'Request canceled' };
     console.error('API request failed:', error);
     return {
       success: false,
@@ -171,12 +174,14 @@ export const recipesApi = {
     params: {
       page?: number;
       limit?: number;
+      collection?: 'favorites';
     } = {},
     token?: string
   ): Promise<ApiResponse<RecipesResponse>> => {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.set('page', params.page.toString());
     if (params.limit) queryParams.set('limit', params.limit.toString());
+    if (params.collection) queryParams.set('collection', params.collection);
 
     const queryString = queryParams.toString();
     return apiRequest(`/recipes${queryString ? `?${queryString}` : ''}`, {
@@ -235,6 +240,42 @@ export const recipesApi = {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(data),
+    });
+  },
+
+  saveNotes: async (
+    id: number,
+    personalNotes: string,
+    token?: string
+  ): Promise<ApiResponse<{ personalNotes: string }>> => {
+    return apiRequest(`/recipes/${id}/notes`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ personalNotes }),
+    });
+  },
+
+  previewImport: async (
+    input: { url?: string; text?: string },
+    token?: string,
+    signal?: AbortSignal
+  ): Promise<ApiResponse<RecipeImportPreview>> => {
+    return apiRequest('/recipe-imports/preview', {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      signal,
+      body: JSON.stringify(input),
+    });
+  },
+
+  saveImport: async (
+    draft: RecipeImportDraft,
+    token?: string
+  ): Promise<ApiResponse<{ recipe: { id: number } }>> => {
+    return apiRequest('/recipe-imports', {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({ draft }),
     });
   },
 };

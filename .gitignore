@@ -35,6 +35,7 @@ logs/
 Thumbs.db
 
 # Temporary files
+.local/
 *.tmp
 *.temp
 # Playwright

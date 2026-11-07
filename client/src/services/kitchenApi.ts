@@ -4,6 +4,18 @@ import type { BulkResult, CommonData, ParsedItem, SuggestItem } from '../types/k
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
+export interface ExclusionPreferences {
+  avoidedAllergens: string[];
+  excludedIngredients: string[];
+  reviewedIngredients: string[];
+  allergens: Record<string, string>;
+}
+
+type ExclusionPreferencesResponse = Omit<ExclusionPreferences, 'reviewedIngredients'> & {
+  reviewedIngredients?: string[];
+};
+type ExclusionPreferencesUpdate = Pick<ExclusionPreferences, 'avoidedAllergens' | 'excludedIngredients' | 'reviewedIngredients'>;
+
 /** Calls the API and returns `data`; throws an Error with a readable message on any failure. */
 async function request<T>(
   endpoint: string,
@@ -35,6 +47,14 @@ async function request<T>(
 }
 
 export const kitchenApi = {
+  exclusions: async (): Promise<ExclusionPreferences> => {
+    const preferences = await request<ExclusionPreferencesResponse>('/preferences');
+    return { ...preferences, reviewedIngredients: preferences.reviewedIngredients ?? [] };
+  },
+  saveExclusions: async (preferences: ExclusionPreferencesUpdate): Promise<ExclusionPreferences> => {
+    const saved = await request<ExclusionPreferencesResponse>('/preferences', { method: 'PUT', body: JSON.stringify(preferences) });
+    return { ...saved, reviewedIngredients: saved.reviewedIngredients ?? [] };
+  },
   common: () => request<CommonData>('/ingredients/common'),
 
   suggest: async (q: string, limit = 8): Promise<SuggestItem[]> =>

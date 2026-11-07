@@ -13,11 +13,11 @@
 .search-input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   font-size: 16px;
-  background-color: white;
-  color: #1f2937;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -42,8 +42,8 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #e1e5e9;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   max-height: 300px;
   overflow-y: auto;
@@ -54,7 +54,7 @@
 
 .search-result {
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-border-soft);
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
@@ -65,26 +65,26 @@
 
 .search-result:hover,
 .search-result.selected {
-  background-color: #f8fafc;
+  background-color: var(--color-bg);
 }
 
 .ingredient-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-ink);
   margin-bottom: 2px;
 }
 
 .ingredient-category {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-ink-muted);
   text-transform: capitalize;
 }
 
 .no-results {
   padding: 16px;
   text-align: center;
-  color: #6b7280;
+  color: var(--color-ink-muted);
   font-size: 14px;
   font-style: italic;
 }

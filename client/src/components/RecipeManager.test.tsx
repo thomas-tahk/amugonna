@@ -8,6 +8,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 const recipe = (id: number, title: string) => ({
   id,
   title,
+  ...(id === 1 && { koreanTitle: '김치찌개' }),
   description: 'tasty',
   instructions: 'cook',
   servings: 2,
@@ -51,6 +52,7 @@ describe('RecipeManager', () => {
     );
 
     expect(await screen.findByText('Garlic Chicken')).toBeInTheDocument();
+    expect(screen.getByText('김치찌개')).toBeInTheDocument();
     expect(screen.getByText('Egg Fried Rice')).toBeInTheDocument();
     expect(screen.queryByText(/Loading/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Suggestions' })).not.toBeInTheDocument();

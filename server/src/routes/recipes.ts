@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { splitSteps } from '../lib/recipes/index.js';
 import { satisfies } from '../lib/ingredients/index.js';
 import { displayName, getRecipesFor, invalidateRecipeIndex, matchRecipes, mergeIngredients } from '../lib/matching/index.js';
+import { allowedPantry, assessIngredients } from '../lib/exclusions.js';
 
 const router = express.Router();
 
@@ -17,14 +18,16 @@ router.get('/', authenticateToken, async (req, res) => {
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
 
-    const whereCondition: any = {
-      createdBy: userId
-    };
+    const whereCondition = req.query.collection === 'favorites'
+      ? { AND: [{ OR: [{ isPublic: true }, { createdBy: userId }] }, { favoriteRecipes: { some: { userId } } }] }
+      : { createdBy: userId };
 
     const [recipes, total] = await Promise.all([
       prisma.recipe.findMany({
         where: whereCondition,
         include: {
+          favoriteRecipes: { where: { userId }, select: { id: true } },
+          recipeNotes: { where: { userId }, select: { personalNotes: true } },
           recipeIngredients: {
             include: {
               ingredient: {
@@ -56,7 +59,8 @@ router.get('/', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        recipes,
+        recipes: recipes.map(recipe => ({ ...recipe, isFavorite: recipe.favoriteRecipes.length > 0,
+          personalNotes: recipe.recipeNotes[0]?.personalNotes ?? (recipe.createdBy === userId ? recipe.personalNotes : null) })),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -85,16 +89,22 @@ router.get('/suggestions', authenticateToken, async (req, res) => {
       where: { userId },
       select: { ingredient: { select: { canonical: true } } }
     });
+    const preferences = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { avoidedAllergens: true, excludedIngredients: true, reviewedIngredients: true } });
     const pantry = [...new Set(pantryItems.map(p => p.ingredient.canonical))];
 
     const recipes = await getRecipesFor(userId);
-    const { cookNow, oneAway, twoAway } = matchRecipes(pantry, recipes);
+    const reviewed = recipes.map(recipe => ({ recipe, ...assessIngredients(recipe.ingredients.flatMap(i => i.rawText ? [i.name, i.rawText] : [i.name]), preferences) }));
+    const eligible = reviewed.filter(r => !r.blocked.length && !r.uncertain.length).map(r => r.recipe);
+    const { cookNow, oneAway, twoAway } = matchRecipes(allowedPantry(pantry, preferences), eligible);
 
     res.json({
       success: true,
       data: {
         pantrySize: pantry.length,
         totalRecipes: recipes.length,
+        exclusionsActive: preferences.avoidedAllergens.length + preferences.excludedIngredients.length > 0,
+        excludedCount: reviewed.filter(r => r.blocked.length > 0).length,
+        reviewCount: reviewed.filter(r => !r.blocked.length && r.uncertain.length > 0).length,
         cookNow,
         oneAway,
         twoAway
@@ -116,6 +126,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user!.userId;
     const {
       title,
+      koreanTitle,
       description,
       instructions,
       ingredients = [],
@@ -138,6 +149,9 @@ router.post('/', authenticateToken, async (req, res) => {
         message: 'Title and instructions are required'
       });
     }
+    if (koreanTitle != null && (typeof koreanTitle !== 'string' || koreanTitle.length > 200)) {
+      return res.status(400).json({ success: false, message: 'Korean title must be text under 200 characters' });
+    }
 
     // Validate that all provided ingredient IDs exist
     if (ingredients.length > 0) {
@@ -157,6 +171,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const recipe = await prisma.recipe.create({
       data: {
         title,
+        koreanTitle: typeof koreanTitle === 'string' ? koreanTitle.trim() || null : null,
         description: description || null,
         instructions,
         prepTime: prepTime != null ? parseInt(prepTime) : null,
@@ -174,6 +189,8 @@ router.post('/', authenticateToken, async (req, res) => {
         recipeIngredients: {
           create: ingredients.map((i: any) => ({
             ingredientId: parseInt(i.ingredientId),
+            rawText: typeof i.rawText === 'string' ? i.rawText : null,
+            measure: typeof i.measure === 'string' ? i.measure : null,
             quantity: i.quantity != null ? parseFloat(i.quantity) : null,
             unit: i.unit || null,
             optional: i.optional || false,
@@ -250,7 +267,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         },
         favoriteRecipes: {
           where: { userId }
-        }
+        },
+        recipeNotes: { where: { userId }, select: { personalNotes: true } }
       }
     });
 
@@ -265,19 +283,22 @@ router.get('/:id', authenticateToken, async (req, res) => {
       where: { userId },
       select: { ingredient: { select: { canonical: true } } }
     });
-    const pantry = pantryItems.map(p => p.ingredient.canonical);
+    const preferences = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { avoidedAllergens: true, excludedIngredients: true, reviewedIngredients: true } });
+    const pantry = allowedPantry(pantryItems.map(p => p.ingredient.canonical), preferences);
+    const ingredientReview = assessIngredients(recipe.recipeIngredients.flatMap(ri => ri.rawText ? [ri.ingredient.name, ri.rawText] : [ri.ingredient.name]), preferences);
 
     const ingredients = mergeIngredients(
       recipe.recipeIngredients.map(ri => ({
         canonical: ri.ingredient.canonical,
         name: displayName(ri.ingredient.canonical, ri.ingredient.name),
-        measure: ri.measure ?? null,
+        measure: ri.measure ?? ([ri.quantity?.toString(), ri.unit].filter(Boolean).join(' ') || null),
         optional: ri.optional
       }))
     ).map(ing => {
       const r = satisfies(pantry, ing.canonical);
       return {
         ...ing,
+        sourceText: recipe.recipeIngredients.filter(ri => ri.ingredient.canonical === ing.canonical).map(ri => ri.rawText).filter(Boolean).join(' + ') || null,
         status: r.status,
         ...(r.status === 'swap' && r.using ? { using: displayName(r.using, r.using) } : {})
       };
@@ -288,6 +309,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
       data: {
         recipe: {
           ...recipe,
+          personalNotes: recipe.recipeNotes[0]?.personalNotes ?? (recipe.createdBy === userId ? recipe.personalNotes : null),
+          ingredientReview,
           steps: splitSteps(recipe.instructions),
           ingredients,
           isFavorite: recipe.favoriteRecipes.length > 0,
@@ -305,6 +328,27 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+router.put('/:id/notes', authenticateToken, async (req, res) => {
+  const recipeId = /^\d+$/.test(req.params.id) ? Number(req.params.id) : 0;
+  const personalNotes = req.body.personalNotes;
+  if (typeof personalNotes !== 'string' || personalNotes.length > 20000) {
+    return res.status(400).json({ success: false, message: 'Notes must be text under 20,000 characters' });
+  }
+  if (!recipeId || recipeId > 2147483647) return res.status(404).json({ success: false, message: 'Recipe not found' });
+  try {
+    const userId = req.user!.userId;
+    const recipe = await prisma.recipe.findFirst({ where: { id: recipeId, OR: [{ createdBy: userId }, { isPublic: true }] }, select: { id: true } });
+    if (!recipe) return res.status(404).json({ success: false, message: 'Recipe not found' });
+    await prisma.recipeNote.upsert({
+      where: { userId_recipeId: { userId, recipeId } },
+      create: { userId, recipeId, personalNotes }, update: { personalNotes },
+    });
+    res.json({ success: true, data: { personalNotes } });
+  } catch {
+    res.status(500).json({ success: false, message: 'Could not save your notes' });
+  }
+});
+
 // PUT /api/recipes/:id - Update a recipe (protected, owner only)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
@@ -312,6 +356,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const recipeId = parseInt(req.params.id);
     const {
       title,
+      koreanTitle,
       description,
       instructions,
       ingredients,
@@ -332,7 +377,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
     } = req.body;
 
     const existing = await prisma.recipe.findFirst({
-      where: { id: recipeId, createdBy: userId }
+      where: { id: recipeId, createdBy: userId },
+      include: { recipeIngredients: true }
     });
 
     if (!existing) {
@@ -341,10 +387,14 @@ router.put('/:id', authenticateToken, async (req, res) => {
         message: 'Recipe not found'
       });
     }
+    if (koreanTitle != null && (typeof koreanTitle !== 'string' || koreanTitle.length > 200)) {
+      return res.status(400).json({ success: false, message: 'Korean title must be text under 200 characters' });
+    }
 
     // Build update payload from only the fields that were sent
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
+    if (koreanTitle !== undefined) updateData.koreanTitle = koreanTitle?.trim() || null;
     if (description !== undefined) updateData.description = description;
     if (instructions !== undefined) updateData.instructions = instructions;
     if (prepTime !== undefined) updateData.prepTime = prepTime != null ? parseInt(prepTime) : null;
@@ -369,6 +419,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
         updateData.recipeIngredients = {
           create: ingredients.map((i: any) => ({
             ingredientId: parseInt(i.ingredientId),
+            rawText: i.rawText === undefined ? existing.recipeIngredients.find(ri => ri.ingredientId === parseInt(i.ingredientId))?.rawText ?? null : i.rawText,
+            measure: i.measure === undefined ? existing.recipeIngredients.find(ri => ri.ingredientId === parseInt(i.ingredientId))?.measure ?? null : i.measure,
             quantity: i.quantity != null ? parseFloat(i.quantity) : null,
             unit: i.unit || null,
             optional: i.optional || false,
@@ -392,6 +444,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
         }
       });
     });
+
+    if (typeof personalNotes === 'string') {
+      await prisma.recipeNote.upsert({ where: { userId_recipeId: { userId, recipeId } },
+        create: { userId, recipeId, personalNotes }, update: { personalNotes } });
+    }
 
     invalidateRecipeIndex();
     res.json({

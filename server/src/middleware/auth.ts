@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, extractTokenFromHeader, JWTPayload } from '../lib/auth.js';
+import { personalEmailAllowed } from '../lib/personal-access.js';
 
 // Extend Express Request type to include user
 declare global {
@@ -22,6 +23,9 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     }
 
     const payload = verifyToken(token);
+    if (!personalEmailAllowed(payload.email)) {
+      return res.status(403).json({ success: false, message: 'This instance is for personal use only' });
+    }
     req.user = payload;
     next();
   } catch (error) {

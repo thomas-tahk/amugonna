@@ -87,8 +87,10 @@ export interface CategoriesResponse {
 export interface RecipeIngredient {
   id: number;
   ingredient: Ingredient;
-  quantity?: number;
-  unit?: string;
+  rawText?: string | null;
+  measure?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
   optional: boolean;
   substitutions: string[];
   preparationNote?: string;
@@ -97,6 +99,7 @@ export interface RecipeIngredient {
 export interface Recipe {
   id: number;
   title: string;
+  koreanTitle?: string;
   description?: string;
   instructions: string;
   prepTime?: number;
@@ -127,6 +130,7 @@ export interface Recipe {
   };
   recipeIngredients: RecipeIngredient[];
   isFavorite?: boolean;
+  ingredientReview?: { blocked: string[]; uncertain: string[] };
 }
 
 export interface RecipesResponse {
@@ -139,6 +143,25 @@ export interface RecipesResponse {
   };
 }
 
+export interface RecipeImportDraft {
+  title: string;
+  koreanTitle?: string;
+  description: string;
+  ingredients: string[];
+  instructions: string;
+  sourceUrl: string;
+  sourceName: string;
+  cuisineTypes: string[];
+  prepTime: number | null;
+  cookTime: number | null;
+  servings: number;
+}
+
+export interface RecipeImportPreview {
+  draft: RecipeImportDraft;
+  warnings: string[];
+}
+
 // Recipe form types
 export interface RecipeIngredientInput {
   ingredientId: number;
@@ -146,18 +169,23 @@ export interface RecipeIngredientInput {
   commonUnits: string[];
   quantity?: number;
   unit?: string;
+  rawText?: string | null;
+  measure?: string | null;
   optional: boolean;
   preparationNote?: string;
 }
 
 export interface CreateRecipeData {
   title: string;
+  koreanTitle?: string;
   description?: string;
   instructions: string;
   ingredients: {
     ingredientId: number;
     quantity?: number;
     unit?: string;
+    rawText?: string | null;
+    measure?: string | null;
     optional?: boolean;
     preparationNote?: string;
   }[];

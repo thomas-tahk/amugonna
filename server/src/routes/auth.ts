@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/database.js';
 import { hashPassword, comparePassword, generateToken } from '../lib/auth.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { personalEmailAllowed } from '../lib/personal-access.js';
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ const validatePassword = (password: string): string[] => {
 router.post('/register', async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
+    if (!personalEmailAllowed(email)) return res.status(403).json({ success: false, message: 'This instance is for personal use only' });
 
     // Validation
     const errors = [];
@@ -119,6 +121,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!personalEmailAllowed(email)) return res.status(403).json({ success: false, message: 'This instance is for personal use only' });
 
     // Validation
     if (!email || !password) {

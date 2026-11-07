@@ -504,7 +504,7 @@ describe('vocabulary integrity', () => {
 
   it('has a sensible size', () => {
     expect(vocab.length).toBeGreaterThanOrEqual(250);
-    expect(vocab.length).toBeLessThanOrEqual(520);
+    expect(vocab.length).toBeLessThanOrEqual(540);
   });
 
   it('canonicals are unique, lowercase, and have Title Case names', () => {

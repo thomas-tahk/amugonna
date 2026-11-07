@@ -29,6 +29,7 @@ const RecipeCard: React.FC<{ recipe: RecipeMatch; onOpen: (id: number) => void }
       </span>
       <span className="cook-card-body">
         <span className="cook-card-title">{recipe.title}</span>
+        {recipe.koreanTitle && <span className="cook-card-korean" lang="ko">{recipe.koreanTitle}</span>}
         {meta(recipe) && <span className="cook-card-meta">{meta(recipe)}</span>}
         {recipe.usedCount > 0 && <span className="cook-card-uses">uses {recipe.usedCount} of your items</span>}
         {recipe.missing.length > 0 && (
@@ -191,6 +192,7 @@ const CookScreen: React.FC<Props> = ({ onNavigate }) => {
 
   return (
     <div className="cook">
+      {data.exclusionsActive && <p className="card cook-filter-note">Foods to avoid applied. {data.excludedCount} recipes excluded; {data.reviewCount} held back because ingredients need label review. <button className="btn btn-secondary" onClick={() => onNavigate?.('kitchen')}>Edit exclusions</button></p>}
       {cookNow.length > 0 && <Section title="Cook now" recipes={cookNow} onOpen={open} />}
       {cookNow.length === 0 && (
         <div className="card cook-state cook-hint">

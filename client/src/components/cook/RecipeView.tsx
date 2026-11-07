@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cookApi } from '../../services/cookApi';
+import { recipesApi } from '../../services/api';
 import type { CookIngredient, CookRecipe } from '../../types/cook';
 import { focusHeading } from '../shell/focus';
 import './Cook.css';
@@ -35,6 +36,7 @@ const IngredientRow: React.FC<{ ing: CookIngredient }> = ({ ing }) => (
       {ing.measure && <span className="cook-ing-measure">{ing.measure} </span>}
       {ing.name}
       {ing.optional && <span className="cook-ing-optional"> (optional)</span>}
+      {ing.sourceText && ing.sourceText.toLowerCase().replace(/\s+/g, ' ').trim() !== `${ing.measure ?? ''} ${ing.name}`.toLowerCase().replace(/\s+/g, ' ').trim() && <small className="cook-ing-source">Original source: {ing.sourceText}</small>}
     </span>
     <Badge ing={ing} />
   </li>
@@ -46,6 +48,8 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
   const [attempt, setAttempt] = useState(0);
   const [done, setDone] = useState<Set<number>>(new Set());
   const [copyLabel, setCopyLabel] = useState<string | null>(null);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteError, setFavoriteError] = useState('');
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -173,10 +177,28 @@ const RecipeView: React.FC<Props> = ({ recipeId, onBack }) => {
       return next;
     });
 
+  const toggleFavorite = async () => {
+    if (favoriteBusy) return;
+    setFavoriteBusy(true);
+    setFavoriteError('');
+    const response = await recipesApi.toggleFavorite(recipe.id);
+    if (response.success && response.data) {
+      setRecipe(current => current ? { ...current, isFavorite: response.data!.isFavorite } : current);
+    } else setFavoriteError(response.message || 'Could not save this recipe. Try again.');
+    setFavoriteBusy(false);
+  };
+
   return (
     <article className="cook cook-view">
       {back}
       <h1 className="cook-view-title" ref={titleRef} tabIndex={-1}>{recipe.title}</h1>
+      {recipe.koreanTitle && <p className="cook-view-korean" lang="ko">{recipe.koreanTitle}</p>}
+      <button type="button" className="btn btn-secondary cook-favorite" aria-label={recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites'} aria-pressed={recipe.isFavorite} disabled={favoriteBusy} onClick={() => void toggleFavorite()}>
+        {recipe.isFavorite ? '♥ Saved to favorites' : '♡ Save to favorites'}
+      </button>
+      {favoriteError && <p role="alert">{favoriteError}</p>}
+      {!!recipe.ingredientReview?.blocked.length && <p role="alert" className="card cook-filter-note">Contains foods you avoid: {recipe.ingredientReview.blocked.join(', ')}. This recipe is excluded from your recommendations.</p>}
+      {!!recipe.ingredientReview?.uncertain.length && <p role="alert" className="card cook-filter-note">Check ingredients before cooking: {recipe.ingredientReview.uncertain.join(', ')}. Their contents could conflict with your exclusions.</p>}
       {recipe.imageUrl ? (
         <img className="cook-view-media" src={recipe.imageUrl} alt="" />
       ) : (

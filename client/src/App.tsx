@@ -2,7 +2,8 @@ import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import AppShell from './components/shell/AppShell';
-import { BrandIcon } from './components/shell/icons';
+import Brand from './components/shell/Brand';
+import Settings from './components/shell/Settings';
 import './App.css';
 
 const AppContent: React.FC = () => {
@@ -24,10 +25,9 @@ const AppContent: React.FC = () => {
       <div className="app">
         <header className="app-header">
           <div className="app-header-inner">
-            <h1 className="brand">
-              <BrandIcon width={26} height={26} />
-              Amugonna
-            </h1>
+            <Brand />
+            <div className="header-spacer" />
+            <Settings />
           </div>
         </header>
         <main className="app-main app-main-auth">

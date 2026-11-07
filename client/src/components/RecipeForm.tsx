@@ -24,6 +24,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
   const isEditing = !!recipe;
 
   const [title, setTitle] = useState(recipe?.title || '');
+  const [koreanTitle, setKoreanTitle] = useState(recipe?.koreanTitle || '');
   const [description, setDescription] = useState(recipe?.description || '');
   const [instructions, setInstructions] = useState(recipe?.instructions || '');
   const [prepTime, setPrepTime] = useState(recipe?.prepTime?.toString() || '');
@@ -48,8 +49,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
       ingredientId: ri.ingredient.id,
       name: ri.ingredient.name,
       commonUnits: ri.ingredient.commonUnits || [],
-      quantity: ri.quantity,
-      unit: ri.unit,
+      quantity: ri.quantity ?? undefined,
+      unit: ri.unit ?? undefined,
+      rawText: ri.rawText,
+      measure: ri.measure,
       optional: ri.optional,
       preparationNote: ri.preparationNote,
     }));
@@ -70,7 +73,16 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
 
   const updateIngredient = (index: number, field: keyof RecipeIngredientInput, value: RecipeIngredientInput[keyof RecipeIngredientInput]) => {
     setIngredients(prev => prev.map((ing, i) =>
-      i === index ? { ...ing, [field]: value } : ing
+      {
+        if (i !== index) return ing;
+        const updated = { ...ing, [field]: value };
+        if (field === 'quantity' || field === 'unit') {
+          const quantity = field === 'quantity' ? value as number | undefined : ing.quantity;
+          const unit = field === 'unit' ? value as string | undefined : ing.unit;
+          updated.measure = [quantity == null ? '' : String(quantity), unit || ''].filter(Boolean).join(' ') || null;
+        }
+        return updated;
+      }
     ));
   };
 
@@ -116,12 +128,15 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
 
     const payload = {
       title: title.trim(),
+      koreanTitle: koreanTitle.trim(),
       description: description.trim() || undefined,
       instructions: instructions.trim(),
       ingredients: ingredients.map(i => ({
         ingredientId: i.ingredientId,
         quantity: i.quantity,
         unit: i.unit || undefined,
+        rawText: i.rawText,
+        measure: i.measure,
         optional: i.optional,
         preparationNote: i.preparationNote?.trim() || undefined,
       })),
@@ -183,6 +198,18 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
           </div>
 
           <div className="form-group">
+            <label htmlFor="koreanTitle">Korean title</label>
+            <input
+              id="koreanTitle"
+              lang="ko"
+              type="text"
+              value={koreanTitle}
+              onChange={e => setKoreanTitle(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+
+          <div className="form-group">
             <label htmlFor="description">Description</label>
             <textarea
               id="description"
@@ -204,7 +231,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSaved, onCancel }) =>
             <div className="ingredient-rows">
               {ingredients.map((ing, i) => (
                 <div key={ing.ingredientId} className="ingredient-row">
-                  <span className="ing-name">{ing.name}</span>
+                  <span className="ing-name">{ing.name}{ing.measure && <small> ({ing.measure})</small>}</span>
                   <input
                     type="number"
                     placeholder="Qty"

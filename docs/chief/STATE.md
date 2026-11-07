@@ -1,10 +1,17 @@
 # Chief state
-Vision: docs/chief/vision.md (done-gate revised + owner answers 2026-10-28)
-Phase: Review — M1 "Cook from my pantry" built on branch m1-cook-from-pantry (off chief); PR into main is the hand-off
-Report: docs/milestones/M1.md (how to try it, evidence, 6 decisions); PR https://github.com/thomas-tahk/amugonna/pull/26
-Next action: owner plays M1 and answers the decisions; then fill scorecard escaped bugs / guesses kept and route (fixes -> Build, new direction -> Plan M2)
-Waiting on him: the 6 decisions in docs/milestones/M1.md (first: run `prisma migrate resolve` on the live DB before merging)
-Open questions: docs/questions/M1.md
-Network note: cloud sandbox blocks themealdb.com / wikibooks.org; live import + match report run in GitHub Actions (mealdb-live.yml)
-Leftover: remote branch m1-live-probe (sandbox couldn't delete it)
-Updated: 2026-10-28
+
+Vision: [vision.md](vision.md)
+Phase: Owner final local review
+Branch: `local-core-allergens`, based on [merged M1](https://github.com/thomas-tahk/amugonna/pull/26).
+Next action: Run `npm run dev:local` and follow the [local walkthrough](../LOCAL.md) on desktop and phone. Collect owner feedback and make requested adjustments before going live.
+Waiting on owner: Final review of the local app and a hosted PostgreSQL choice. See the [deployment checklist](../PERSONAL-DEPLOY.md).
+
+The prior session added ingredient exclusions and label confirmations, appearance settings, Korean recipe discovery and titles, private URL/text imports, favorites and notes, source-preserving edits, stable local sessions, backup tooling, and deployment preparation. See the [personal review plan](../superpowers/plans/2026-10-31-personal-review.md).
+
+Prior verification recorded 970 server/client tests and 19 browser passes, with one phone-only case skipped on desktop. The live publisher import → edit → private save → favorite → note → cook flow ran locally. A restart preserved login, and a backup restore matched record counts in a disposable database.
+
+Deployment: Automatic Vercel previews are disabled for this branch during local review. Hosting must satisfy the no-new-subscription and no-idle-suspension constraints.
+
+Decisions: Korean discovery through more sources and visible titles, with existing ranking. The shelf links to publishers and imported recipe copies are private. Optional AI assistance, full KR/EN UI, photo entry and shopping lists remain later work.
+
+Updated: 2026-11-07

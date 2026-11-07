@@ -1,0 +1,33 @@
+import { test, expect } from '@playwright/test';
+import { signUp } from './helpers';
+
+test('saved milk and custom exclusions govern the real cooking journey', async ({ page }) => {
+  await signUp(page);
+  await page.getByText('Foods to avoid', { exact: true }).click();
+  await page.getByLabel('Milk / dairy', { exact: true }).check();
+  await page.getByLabel('Other ingredients to avoid').fill('mushrooms');
+  await page.getByLabel('Ingredients with labels I have checked').fill('kimchi');
+  await page.getByRole('button', { name: 'Save exclusions' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Exclusions saved' })).toBeVisible();
+  await page.reload();
+  await page.getByText('Foods to avoid', { exact: true }).click();
+  await expect(page.getByLabel('Milk / dairy', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('Other ingredients to avoid')).toHaveValue('mushroom');
+  await expect(page.getByLabel('Ingredients with labels I have checked')).toHaveValue('kimchi');
+  await page.getByText('Foods to avoid', { exact: true }).click();
+  const box = page.getByRole('combobox', { name: /add ingredients/i });
+  await box.fill('eggs, rice, onion, garlic, chicken, pasta, butter, milk, cheddar, mushrooms, bell peppers, broccoli, soy sauce');
+  await page.getByRole('button', { name: 'Check', exact: true }).click();
+  await page.getByRole('button', { name: /^Add \d/ }).click();
+  await page.getByRole('button', { name: /See what I can cook/ }).click();
+  const section = page.getByRole('region', { name: 'Cook now', exact: true });
+  await expect(section).toBeVisible();
+  await expect(section.getByRole('button').filter({ hasText: 'Pasta Carbonara' })).toHaveCount(0);
+  await section.getByRole('button').first().click();
+  const ingredients = page.getByRole('region', { name: 'Ingredients', exact: true });
+  await expect(ingredients).toBeVisible();
+  await expect(ingredients).not.toContainText(/butter|cheddar|parmesan|mushroom/i);
+  const step = page.getByRole('region', { name: 'Steps' }).getByRole('button').first();
+  await step.click();
+  await expect(step).toHaveAttribute('aria-pressed', 'true');
+});

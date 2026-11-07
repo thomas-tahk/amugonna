@@ -23,31 +23,34 @@ export const USER_CACHE_MAX = 1000;
 const select = {
   id: true,
   title: true,
+  koreanTitle: true,
   imageUrl: true,
   category: true,
   area: true,
   prepTime: true,
   cookTime: true,
   recipeIngredients: {
-    select: { optional: true, ingredient: { select: { canonical: true, name: true } } },
+    select: { optional: true, rawText: true, ingredient: { select: { canonical: true, name: true } } },
   },
 } as const;
 
 type Row = {
   id: number;
   title: string;
+  koreanTitle: string | null;
   imageUrl: string | null;
   category: string | null;
   area: string | null;
   prepTime: number | null;
   cookTime: number | null;
-  recipeIngredients: { optional: boolean; ingredient: { canonical: string; name: string } }[];
+  recipeIngredients: { optional: boolean; rawText: string | null; ingredient: { canonical: string; name: string } }[];
 };
 
 function toIndexed(r: Row): IndexedRecipe {
   return {
     id: r.id,
     title: r.title,
+    koreanTitle: r.koreanTitle,
     imageUrl: r.imageUrl,
     category: r.category,
     area: r.area,
@@ -57,6 +60,7 @@ function toIndexed(r: Row): IndexedRecipe {
       canonical: ri.ingredient.canonical,
       name: ri.ingredient.name,
       optional: ri.optional,
+      rawText: ri.rawText,
     })),
   };
 }

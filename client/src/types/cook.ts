@@ -1,4 +1,5 @@
 export interface RecipeMatch {
+  koreanTitle?: string;
   id: number;
   title: string;
   imageUrl: string | null;
@@ -12,6 +13,9 @@ export interface RecipeMatch {
 }
 
 export interface Suggestions {
+  exclusionsActive?: boolean;
+  excludedCount?: number;
+  reviewCount?: number;
   pantrySize: number;
   totalRecipes: number;
   cookNow: RecipeMatch[];
@@ -22,6 +26,7 @@ export interface Suggestions {
 export type IngredientStatus = 'have' | 'swap' | 'missing' | 'staple';
 
 export interface CookIngredient {
+  sourceText?: string | null;
   name: string;
   canonical: string;
   measure: string | null;
@@ -31,6 +36,8 @@ export interface CookIngredient {
 }
 
 export interface CookRecipe {
+  koreanTitle?: string | null;
+  ingredientReview?: { blocked: string[]; uncertain: string[] };
   id: number;
   title: string;
   description: string | null;

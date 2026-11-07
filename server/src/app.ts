@@ -4,6 +4,8 @@ import { prisma } from './lib/database.js';
 import authRoutes from './routes/auth.js';
 import ingredientRoutes from './routes/ingredients.js';
 import recipeRoutes from './routes/recipes.js';
+import preferenceRoutes from './routes/preferences.js';
+import recipeImportRoutes from './routes/recipe-imports.js';
 
 export const app = express();
 
@@ -39,7 +41,11 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/recipes', recipeRoutes);
+app.use('/api/preferences', preferenceRoutes);
+app.use('/api/recipe-imports', recipeImportRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working' });
 });
+
+export default app;

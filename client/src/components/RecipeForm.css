@@ -12,7 +12,7 @@
 }
 
 .form-nav h2 {
-  color: #1f2937;
+  color: var(--color-ink);
   margin: 0;
   font-size: 1.5em;
 }
@@ -32,9 +32,9 @@
 }
 
 .error-message {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
   padding: 12px 16px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -48,7 +48,7 @@
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: #dc2626;
+  color: var(--color-error);
   padding: 0;
 }
 
@@ -60,7 +60,7 @@
 
 .form-section {
   padding: 24px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--color-bg);
 }
 
 .form-section:last-of-type {
@@ -69,13 +69,13 @@
 
 .form-section h3 {
   font-size: 1em;
-  color: #374151;
+  color: var(--color-ink);
   margin: 0 0 16px 0;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.05em;
-  color: #6b7280;
+  color: var(--color-ink-muted);
 }
 
 .recipe-form-container .form-group {
@@ -91,7 +91,7 @@
 .recipe-form-container .form-group label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-ink);
   margin-bottom: 6px;
 }
 
@@ -101,13 +101,13 @@
 .recipe-form-container .form-group select,
 .recipe-form-container .form-group textarea {
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: white;
-  color: #1f2937;
+  background: var(--color-surface);
+  color: var(--color-ink);
 }
 
 .recipe-form-container .form-group input:focus,
@@ -150,8 +150,8 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
   border-radius: 6px;
   flex-wrap: wrap;
 }
@@ -159,7 +159,7 @@
 .ing-name {
   font-weight: 500;
   font-size: 14px;
-  color: #1f2937;
+  color: var(--color-ink);
   min-width: 120px;
   flex: 1;
 }
@@ -167,7 +167,7 @@
 .ing-qty {
   width: 70px;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 13px;
   flex-shrink: 0;
@@ -176,7 +176,7 @@
 .ing-unit {
   width: 90px;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 13px;
   flex-shrink: 0;
@@ -186,7 +186,7 @@
   flex: 1;
   min-width: 100px;
   padding: 6px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 13px;
 }
@@ -196,7 +196,7 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-ink-muted);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -213,7 +213,7 @@
 }
 
 .remove-ing-btn:hover {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 /* Tag inputs */
@@ -226,7 +226,7 @@
 .tag-input-row input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
 }
@@ -239,17 +239,17 @@
 
 .recipe-form-container .btn-add-tag {
   padding: 8px 14px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  color: #374151;
+  color: var(--color-ink);
   white-space: nowrap;
 }
 
 .recipe-form-container .btn-add-tag:hover {
-  background: #e5e7eb;
+  background: var(--color-border-soft);
 }
 
 .tag-chips {
@@ -262,12 +262,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
   border-radius: 20px;
   padding: 4px 10px;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-ink);
 }
 
 .recipe-form-container .chip button {
@@ -280,10 +280,10 @@
   line-height: 1;
 }
 
-.recipe-form-container .chip button:hover { color: #ef4444; }
+.recipe-form-container .chip button:hover { color: var(--color-error); }
 
-.recipe-form-container .chip-cuisine { background: #eff6ff; border-color: #bfdbfe; color: var(--color-primary-text); }
-.recipe-form-container .chip-allergen { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.recipe-form-container .chip-cuisine { background: var(--color-bg); border-color: var(--color-border); color: var(--color-primary-text); }
+.recipe-form-container .chip-allergen { background: var(--color-error-bg); border-color: var(--color-error); color: var(--color-error); }
 
 /* Dietary checkboxes */
 .dietary-checkboxes {
@@ -297,19 +297,19 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-ink);
   cursor: pointer;
   padding: 6px 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border-soft);
   border-radius: 6px;
-  background: white;
+  background: var(--color-surface);
   transition: all 0.15s;
 }
 
 .dietary-option:has(input:checked) {
-  background: #f0fdf4;
-  border-color: #86efac;
-  color: #16a34a;
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .share-toggle {
@@ -317,7 +317,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #374151;
+  color: var(--color-ink);
   cursor: pointer;
 }
 
@@ -345,7 +345,7 @@
 
 .recipe-form-container .btn-primary {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .recipe-form-container .btn-primary:hover:not(:disabled) {
@@ -353,12 +353,12 @@
 }
 
 .recipe-form-container .btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 .recipe-form-container .btn-secondary:hover {
-  background: #e5e7eb;
+  background: var(--color-border-soft);
 }
 
 @media (max-width: 768px) {

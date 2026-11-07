@@ -21,7 +21,7 @@
 .cook-card-placeholder {
   display: flex; align-items: center; justify-content: center;
   width: 100%; height: 100%;
-  background: var(--color-ink); color: var(--color-swap);
+  background: var(--color-header-bg); color: var(--color-swap);
   font-size: var(--text-3xl); font-weight: 800;
 }
 .cook-card-body { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4); }
@@ -116,3 +116,10 @@
   .cook-card-need { font-size: var(--text-base); }
   .cook-skeleton-card .cook-card-media { height: 96px; }
 }
+
+.cook-filter-note { padding: 1rem; margin-bottom: 1rem; }
+.cook-card-korean, .cook-view-korean { color: var(--color-ink-muted); letter-spacing: normal; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+.cook-card-korean { font-size: var(--text-sm); }
+.cook-view-korean { margin: 0 0 var(--space-4); font-size: var(--text-xl); }
+.cook-favorite { margin-bottom: var(--space-4); }
+.cook-ing-source { display: block; color: var(--color-ink-muted); font-size: var(--text-sm); margin-top: var(--space-1); }

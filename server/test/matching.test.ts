@@ -76,7 +76,7 @@ describe.skipIf(!hasDb)('matching API (needs a migrated TEST_DATABASE_URL)', () 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     const data = res.body.data as Suggestions;
-    expect(Object.keys(data).sort()).toEqual(['cookNow', 'oneAway', 'pantrySize', 'totalRecipes', 'twoAway']);
+    expect(Object.keys(data).sort()).toEqual(['cookNow', 'excludedCount', 'exclusionsActive', 'oneAway', 'pantrySize', 'reviewCount', 'totalRecipes', 'twoAway']);
     expect(data.pantrySize).toBe(PANTRY.length);
     expect(data.totalRecipes).toBeGreaterThanOrEqual(45);
     expect(data.cookNow.length + data.oneAway.length).toBeGreaterThanOrEqual(3);

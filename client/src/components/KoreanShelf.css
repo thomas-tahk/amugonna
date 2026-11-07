@@ -1,0 +1,25 @@
+.korean-shelf { max-width: 1000px; margin: 0 auto; }
+.korean-shelf-intro { margin-bottom: var(--space-5); }
+.korean-shelf-intro h2 { margin: 0; color: var(--color-ink); font-size: var(--text-2xl); }
+.korean-shelf-intro p { max-width: 70ch; color: var(--color-ink-muted); }
+.korean-shelf-review-note { padding: var(--space-3); border-left: 4px solid var(--color-swap); background: var(--color-surface); color: var(--color-ink) !important; }
+.korean-shelf-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: var(--space-3); list-style: none; margin: 0; padding: 0; }
+.korean-shelf-card { height: 100%; display: flex; flex-direction: column; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.korean-shelf-title { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); }
+.korean-shelf-title h3 { margin: 0; color: var(--color-ink); font-size: var(--text-lg); }
+.korean-subtitle { margin: 2px 0 0; color: var(--color-ink-muted); font-size: 1rem; letter-spacing: normal; }
+.korean-shelf-category { flex: 0 0 auto; max-width: 45%; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--color-bg); color: var(--color-ink); font-size: var(--text-sm); }
+.korean-shelf-source { margin: var(--space-3) 0 0; color: var(--color-ink-muted); font-size: var(--text-sm); }
+.korean-shelf-version { flex: 1; margin: var(--space-2) 0 var(--space-3); line-height: 1.5; color: var(--color-ink); }
+.korean-shelf-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.korean-shelf-actions a { min-height: var(--tap); display: inline-flex; align-items: center; color: var(--color-primary-text); text-underline-offset: 3px; }
+.korean-shelf-actions button { min-height: var(--tap); padding: 8px 12px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); background: var(--color-primary); color: var(--color-on-primary); font: inherit; font-weight: 650; cursor: pointer; }
+.korean-shelf-actions button:hover { background: var(--color-primary-hover); }
+.korean-shelf :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+@media (max-width: 420px) {
+  .korean-shelf-title { flex-direction: column; }
+  .korean-shelf-category { max-width: 100%; }
+  .korean-shelf-actions { align-items: stretch; flex-direction: column; }
+  .korean-shelf-actions button { width: 100%; }
+}

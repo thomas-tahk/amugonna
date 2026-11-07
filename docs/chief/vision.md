@@ -4,6 +4,15 @@ _Shape round 1, 2026-10-25_
 ## Intent
 Lower the inertia of "what do I make right now?" Look at what's in your fridge and pantry, see what you can cook from it. Nothing else.
 
+## Current owner direction — 2026-11-01
+- Personal local use first; finish the cooking flow and personal collection before hosting logistics. Final owner review and adjustments precede publication.
+- Increase Korean recipe coverage and visibility, with Korean-name subtitles under main titles. No cuisine ranking boost. Brand subtitle: 아무거나. Full KR/EN interface later.
+- Keep starter data while curating better source-specific versions; imported web recipes are private, reviewed copies with attribution. Separate recipe database/API is a distant stretch goal.
+- Common allergen presets and custom exclusions matter now, especially strict milk/dairy avoidance. User-checked ingredient labels may clear uncertainty but never override an explicit exclusion.
+- Personal URL/text imports, favorites and notes are next; editable preview and confirmation precede saves. AI assistance is optional and must not invent recipes.
+- Shopping lists, photos, planning/history/sharing and older ideas remain later/stretch. Photos should propose foods/amounts for human correction and confirmation.
+- No new hosting subscription or silently chosen sleeping backend. Deployment preparation can proceed; hosting choice/access remains open.
+
 ## Goals
 - Personal use first (the owner), but anyone can sign up and use it.
 - Pantry/fridge in → recipes you can make now out.

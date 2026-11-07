@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { BrandIcon } from './icons';
+import Brand from './Brand';
 import { TABS } from './tabs';
 import { focusHeading } from './focus';
 import { navigate, tabHash, useRoute } from './route';
+import Settings from './Settings';
 
 const AppShell: React.FC = () => {
   const { user, logout } = useAuth();
@@ -23,10 +24,7 @@ const AppShell: React.FC = () => {
     <div className="app">
       <header className="app-header">
         <div className="app-header-inner">
-          <h1 className="brand">
-            <BrandIcon width={26} height={26} />
-            Amugonna
-          </h1>
+          <Brand />
           <nav className="tabs" aria-label="Main">
             {TABS.map(({ id, label, Icon }) => (
               <button
@@ -43,6 +41,7 @@ const AppShell: React.FC = () => {
           </nav>
           <div className="header-spacer" />
           {user && <span className="user-greeting">Hi, {user.firstName}</span>}
+          <Settings />
           <button type="button" className="btn btn-signout" onClick={logout}>
             Sign out
           </button>

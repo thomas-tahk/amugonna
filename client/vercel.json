@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "local-core-allergens": false
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

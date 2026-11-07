@@ -6,6 +6,7 @@ import type { CommonData, SuggestItem } from '../../types/kitchen';
 import type { TabId } from '../shell/tabs';
 import { focusHeading } from '../shell/focus';
 import AddBox from './AddBox';
+import Exclusions from './Exclusions';
 import './Kitchen.css';
 
 interface Props {
@@ -259,6 +260,7 @@ const KitchenScreen: React.FC<Props> = ({ onNavigate }) => {
   return (
     <div className="kitchen" data-confirming={confirming}>
       <h2 className="kitchen-title" ref={titleRef} tabIndex={-1}>Your kitchen</h2>
+      <Exclusions onSaved={refreshCount} />
 
       <AddBox onPick={pickSuggestion} onAddTexts={addTexts} onTextChange={setFilter} onConfirmChange={setConfirming} />
 

@@ -6,6 +6,7 @@ import { getEntry, satisfies } from '../ingredients/index.js';
 import type { SatisfyResult } from '../ingredients/index.js';
 
 export interface IndexedIngredient {
+  rawText?: string | null;
   canonical: string;
   /** DB display name, used when the vocabulary has no entry */
   name: string;
@@ -15,6 +16,7 @@ export interface IndexedIngredient {
 export interface IndexedRecipe {
   id: number;
   title: string;
+  koreanTitle?: string | null;
   imageUrl: string | null;
   category: string | null;
   area: string | null;
@@ -26,6 +28,7 @@ export interface IndexedRecipe {
 export interface RecipeMatch {
   id: number;
   title: string;
+  koreanTitle?: string;
   imageUrl: string | null;
   category: string | null;
   area: string | null;
@@ -117,6 +120,7 @@ export function matchRecipes(pantryCanonicals: string[], recipes: IndexedRecipe[
     tiers[missing.length].push({
       id: recipe.id,
       title: recipe.title,
+      ...(recipe.koreanTitle ? { koreanTitle: recipe.koreanTitle } : {}),
       imageUrl: recipe.imageUrl,
       category: recipe.category,
       area: recipe.area,

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 // vitest runs with cwd = client/
 const tokensCss = readFileSync('src/styles/tokens.css', 'utf8');
+const palettesCss = readFileSync('src/styles/palettes.css', 'utf8');
 
 function parseTokens(css: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -85,3 +86,15 @@ describe('design token contrast (WCAG)', () => {
     expect(ratio(tokens[fg], tokens[bg])).toBeGreaterThanOrEqual(3);
   });
 });
+
+for (const block of palettesCss.matchAll(/\[data-palette="([\w-]+)"\]\s*\{([^}]+)\}/g)) {
+  const palette = { ...tokens, ...parseTokens(block[2]) };
+  describe(`${block[1]} palette contrast`, () => {
+    it.each(TEXT_PAIRS)('%s on %s meets text contrast', (fg, bg) => {
+      expect(ratio(palette[fg], palette[bg])).toBeGreaterThanOrEqual(4.5);
+    });
+    it.each(UI_PAIRS)('%s on %s meets control contrast', (fg, bg) => {
+      expect(ratio(palette[fg], palette[bg])).toBeGreaterThanOrEqual(3);
+    });
+  });
+}

@@ -13,7 +13,7 @@
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Node.js + Express + TypeScript  
 - **Database**: PostgreSQL
-- **Hosting**: Undecided (see `docs/milestones/M1.md` for options); never an idle-pausing free tier
+- **Hosting**: Vercel (two projects) + Neon free plan Postgres, decided 2026-11-08 (idle wake delay accepted); setup in `docs/NEON-SETUP.md`
 
 ## Development Environment
 - Monorepo structure with `/client` and `/server` workspaces

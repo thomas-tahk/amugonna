@@ -12,8 +12,8 @@ The user requested one final review and adjustments before going live. No hosted
 
 Two Vercel projects avoid rewriting the existing app or replacing the database. The frontend uses its configured backend URL directly. Never point an API client at its own Vercel deployment hostname as a proxy shortcut.
 
-## Database constraint to settle before publication
-The user wants no new subscription and no idle-pausing service. Neon's free plan suspends after inactivity and does not meet that requirement; it has not been selected. Paid always-on Postgres and a shared self-managed server remain options, not purchases. The app's deployment preparation does not resolve this service/budget choice by itself.
+## Database choice
+Decided 2026-11-08: Neon free plan, new project in the owner's existing account. Its idle suspend (short wake delay) was accepted by the owner. Setup steps: [NEON-SETUP.md](NEON-SETUP.md).
 
 ## Environment setup (values supplied privately)
 Backend:

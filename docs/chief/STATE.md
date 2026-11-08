@@ -14,4 +14,6 @@ Deployment: Automatic Vercel previews are disabled for this branch during local 
 
 Decisions: Korean discovery through more sources and visible titles, with existing ranking. The shelf links to publishers and imported recipe copies are private. Optional AI assistance, full KR/EN UI, photo entry and shopping lists remain later work.
 
-Updated: 2026-11-07
+Decision 2026-11-08: hosted DB = Neon free plan, a new database in his existing Neon account (data ~11 MB; scale-to-zero wake delay accepted; no new subscription). Owner local review passed; selection/matching nuance is long-term work, not a launch blocker.
+
+Updated: 2026-11-08
